@@ -1,3 +1,7 @@
+build/
+external/
+.vscode
+
 # Prerequisites
 *.d
 
