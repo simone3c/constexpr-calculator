@@ -1,0 +1,9 @@
+[submodule "external/crte"]
+	path = compile-time-regular-expressions
+	url = https://github.com/hanickadot/compile-time-regular-expressions.git
+[submodule "crte"]
+	path = external/crte
+	url = https://github.com/hanickadot/compile-time-regular-expressions.git
+[submodule "ctre"]
+	path = external/ctre
+	url = https://github.com/hanickadot/compile-time-regular-expressions.git
