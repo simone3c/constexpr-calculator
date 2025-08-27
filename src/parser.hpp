@@ -9,6 +9,12 @@
 
 #include "tokenizer.hpp"
 
+// still good idea if exprssion will ever use complex numbers
+// template<typename evaluation_t>
+// concept Evaluatable = requires(evaluation_t node){
+//     {node.evaluate()} -> std::convertible_to<evaluation_t>; // change to a more appropriate type
+// };
+
 
 
 /*
@@ -23,57 +29,78 @@
 
 namespace ev{
 
-    namespace {
+namespace {
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct expr{
+        constexpr virtual eval_t evaluate() const = 0;
+        constexpr virtual ~expr() = default;
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    using expr_ptr_t = std::unique_ptr<expr<eval_t>>;
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct add : expr<eval_t>{
+        expr_ptr_t<eval_t> l;
+        expr_ptr_t<eval_t> r;
+
+        constexpr add(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
+            l(std::move(l2)), 
+            r(std::move(r2))
+        {}
+
+        constexpr eval_t evaluate() const {
+            return l->evaluate() + r->evaluate();
+        }
+
+        constexpr ~add() = default;
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct atom : expr<eval_t>{
+        expr_ptr_t<eval_t> data;
+
+        constexpr atom(expr_ptr_t<eval_t>&& ptr) noexcept: 
+            data(std::move(ptr))
+        {}
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct unary_minus : atom<eval_t>{
+        explicit constexpr unary_minus(expr_ptr_t<eval_t>&& next) noexcept: 
+            atom<eval_t>::atom(std::move(next))
+        {}
+
+        constexpr eval_t evaluate() const {
+            return -atom<eval_t>::data->evaluate();
+        };
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct lit : atom<eval_t>{
+        eval_t value;
+        explicit constexpr lit(eval_t v) noexcept: 
+            atom<eval_t>::atom(nullptr), 
+            value(v)
+        {}
+
+        constexpr eval_t evaluate() const {
+            return value;
+        }
+    };
+    
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    class parser{
         
-        template<typename eval_t>
-        requires std::is_arithmetic<eval_t>::value
-        class parser{
-            
-        struct expr{
-            constexpr virtual eval_t evaluate() const = 0;
-            constexpr virtual ~expr() = default;
-        };
-            
-        using expr_ptr_t = std::unique_ptr<expr>;
-
-        struct add : expr{
-            expr_ptr_t l;
-            expr_ptr_t r;
-
-            constexpr add(expr_ptr_t&& l2, expr_ptr_t&& r2) noexcept: 
-                l(std::move(l2)), r(std::move(r2))
-            {}
-
-            constexpr eval_t evaluate() const {
-                return l->evaluate() + r->evaluate();
-            }
-
-            constexpr ~add() = default;
-        };
-
-        struct atom : expr{
-            expr_ptr_t data;
-
-            constexpr atom(expr_ptr_t&& ptr) noexcept: data(std::move(ptr)){}
-        };
-
-        struct unary_minus : atom{
-            explicit constexpr unary_minus(expr_ptr_t&& next) noexcept: atom::atom(std::move(next)){}
-            constexpr eval_t evaluate() const {
-                return -atom::data->evaluate();
-            };
-        };
-
-        struct lit : atom{
-            eval_t value;
-            explicit constexpr lit(eval_t v) noexcept: atom::atom(nullptr), value(v){}
-
-            constexpr eval_t evaluate() const {
-                return value;
-            }
-        };
-
-        expr_ptr_t root;
+        expr_ptr_t<eval_t> root;
         tokenizer t;
         std::string expr;
 
@@ -82,23 +109,28 @@ namespace ev{
 
         // when dvision will be a thing, maybe the evaluation will need to return
         // an expected in order to handle divison by 0... sqrt(-1)....
-        constexpr std::expected<eval_t, ev::calc_err> evaluate(std::string_view str){
-            using enum ev::err_type_t;
+        constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str){
+            using enum calc_err_type_t;
 
-            ev::calc_err err = parse(str);
-            if(err.err_type != NO_ERROR){
+            calc_err err = parse(str);
+            if(err.get_err_type() != NO_ERROR){
                 return std::unexpected(err);
             }
 
             if(root == nullptr)
-                return std::unexpected(ev::calc_err::error_message(INVALID_EXPR, "Parsing failed"));
+                return std::unexpected(
+                    calc_err::error_message(
+                        INVALID_EXPR, 
+                        "Parsing failed"
+                    )
+                );
 
             return root->evaluate();
         }
 
     private:
-        constexpr ev::calc_err parse(std::string_view input){
-            using enum ev::err_type_t;
+        constexpr calc_err parse(std::string_view input){
+            using enum calc_err_type_t;
 
             root.reset();
             expr.clear();
@@ -107,8 +139,8 @@ namespace ev{
             expr = std::string{input};
 
 
-            ev::calc_err err = t.tokenize(input);
-            if(err.err_type != NO_ERROR)
+            calc_err err = t.tokenize(input);
+            if(err.get_err_type() != NO_ERROR)
                 return err;
 
             auto tmp = parse_exp();
@@ -118,15 +150,18 @@ namespace ev{
             }
 
             if(t.has_more_tokens()){
-                return ev::calc_err::error_message(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
+                return calc_err::error_message(
+                    UNEXPECTED_TOKEN, 
+                    "Unexpected expression terminator found"
+                );
             }
 
             root = std::move(*tmp);
 
-            return ev::calc_err::no_error();
+            return calc_err::no_error();
         }
 
-        constexpr std::expected<expr_ptr_t, ev::calc_err> parse_exp(){
+        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_exp(){
 
             auto next_expr = parse_atom();
             if(!next_expr){
@@ -142,22 +177,33 @@ namespace ev{
                     return next_expr_2;
                 }
 
-                next_expr = std::make_unique<add>(std::move(*next_expr), std::move(*next_expr_2));
+                next_expr = std::make_unique<add<eval_t>>(
+                    std::move(*next_expr), 
+                    std::move(*next_expr_2)
+                );
             }
 
             return next_expr;
         }
 
-        constexpr std::expected<expr_ptr_t, ev::calc_err> parse_atom(){
-            using enum ev::err_type_t;
+        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_atom(){
+            using enum calc_err_type_t;
 
-            std::expected<expr_ptr_t, ev::calc_err> tmp;
+            std::expected<expr_ptr_t<eval_t>, calc_err> tmp;
             std::optional<eval_t> lit_val;
 
             auto tok = t.next();
 
             if(!tok.has_value()){
-                return std::unexpected(ev::calc_err::error_with_wrong_token(EXPECTED_TOKEN, "Expected token, found end-of-expression instead", expr, expr.size() - 1, expr.size()));
+                return std::unexpected(
+                    calc_err::error_with_wrong_token(
+                        EXPECTED_TOKEN, 
+                        "Expected token, found end-of-expression instead", 
+                        expr, 
+                        expr.size() - 1, 
+                        expr.size()
+                    )
+                );
             }
             
             switch (tok->type){
@@ -168,34 +214,66 @@ namespace ev{
                 }
 
                 if(!t.consume(tokenizer::TOKEN_TYPE::CLOSED_PAR)){
-                    return std::unexpected(ev::calc_err::error_with_wrong_token(EXPECTED_TOKEN, "Expected a closed bracket ')'", expr, tok->start, tok->end));
+                    return std::unexpected(
+                        calc_err::error_with_wrong_token(
+                            EXPECTED_TOKEN, 
+                            "Expected a closed bracket ')'", 
+                            expr, 
+                            tok->start, 
+                            tok->end
+                        )
+                    );
                 }
                 break;
 
             case tokenizer::TOKEN_TYPE::MINUS:
                 if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
-                    return std::unexpected(ev::calc_err::error_with_wrong_token(UNEXPECTED_TOKEN, "Unexpected '-' after another '-' symbol", expr, tok->start, tok->end));
+                    return std::unexpected(
+                        calc_err::error_with_wrong_token(
+                            UNEXPECTED_TOKEN, 
+                            "Unexpected '-' after another '-' symbol", 
+                            expr, 
+                            tok->start, 
+                            tok->end
+                        )
+                    );
                 }
 
                 tmp = parse_atom();
                 if(!tmp){
                     return tmp;
                 }
-                tmp = std::make_unique<unary_minus>(std::move(*tmp));
+                tmp = std::make_unique<unary_minus<eval_t>>(std::move(*tmp));
                 break;
 
             case tokenizer::TOKEN_TYPE::LIT:
                 lit_val = lit_convert(tok->val);
                 if(!lit_val){
-                    return std::unexpected(ev::calc_err::error_with_wrong_token(INVALID_LITERAL, "Invalid literal", expr, tok->start, tok->end));
+                    return std::unexpected(
+                        calc_err::error_with_wrong_token(
+                            INVALID_LITERAL, 
+                            "Invalid literal", 
+                            expr, 
+                            tok->start, 
+                            tok->end
+                        )
+                    );
                 }
-                tmp = std::make_unique<lit>(*lit_val); 
+                tmp = std::make_unique<lit<eval_t>>(*lit_val); 
                 break;
 
             // sin, cos, ...
 
             default:
-                return std::unexpected(ev::calc_err::error_with_wrong_token(INVALID_EXPR, "Invalid expression, expected a literal or function", expr, tok->start, tok->end));
+                return std::unexpected(
+                    calc_err::error_with_wrong_token(
+                        INVALID_EXPR, 
+                        "Invalid expression, expected a literal or function", 
+                        expr, 
+                        tok->start, 
+                        tok->end
+                    )
+                );
             }
 
             return tmp;
@@ -234,17 +312,10 @@ namespace ev{
 }
 
     template<typename eval_t>
-    constexpr std::expected<eval_t, ev::calc_err> evaluate(std::string_view str)
+    constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str)
     requires std::is_arithmetic<eval_t>::value{
         return parser<eval_t>().evaluate(str);
     }
 }
-
-// still good idea if exprssion will ever use complex numbers
-// template<typename evaluation_t>
-// concept Evaluatable = requires(evaluation_t node){
-//     {node.evaluate()} -> std::convertible_to<evaluation_t>; // change to a more appropriate type
-// };
-
 
 #endif

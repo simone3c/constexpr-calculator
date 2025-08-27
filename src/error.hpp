@@ -23,7 +23,7 @@ static constexpr void my_strncpy(char* dst, const char* src, ssize_t n){
 }
 
 namespace ev{
-    enum class err_type_t{
+    enum class calc_err_type_t{
         UNKNOWN_TOKEN,
         EMPTY_EXPRESSION,
         INVALID_LITERAL,
@@ -31,68 +31,84 @@ namespace ev{
         UNEXPECTED_TOKEN,
         INVALID_EXPR,
         NO_ERROR
-
     };
 
-    struct calc_err{
+    class calc_err{
         
-        using enum err_type_t;
+        using enum calc_err_type_t;
         
-        err_type_t err_type;
+        calc_err_type_t err_type;
         std::array<char, buf_sz + 1> err_msg;
-        std::array<char, buf_sz + 1> wrong_expr;
-        size_t start;
-        size_t end;
+        std::optional<std::array<char, buf_sz + 1>> wrong_expr;
+        std::optional<size_t> start;
+        std::optional<size_t> end;
 
+    public:
 
-        static constexpr calc_err error_message(err_type_t type, std::string_view msg){
-            return calc_err(type, msg, "", 0, 0);
+        static constexpr calc_err error_message(
+            calc_err_type_t type, 
+            std::string_view msg
+        ){
+            return calc_err(type, msg, std::nullopt, std::nullopt, std::nullopt);
         }
         
         static constexpr calc_err no_error(){
-            return calc_err(NO_ERROR, "", "", 0, 0);
+            return calc_err(NO_ERROR, "No error", std::nullopt, std::nullopt, std::nullopt);
         }
 
-        static constexpr calc_err error_with_wrong_token(err_type_t type, std::string_view msg, std::string_view wrong, size_t start, size_t end){
+        static constexpr calc_err error_with_wrong_token(
+            calc_err_type_t type, 
+            std::string_view msg, 
+            std::string_view wrong, 
+            size_t start, 
+            size_t end
+        ){
             return calc_err(type, msg, wrong, start, end);
         }
 
-private:
-        constexpr calc_err(err_type_t type, std::string_view msg, std::string_view wrong, size_t s, size_t e):
+        constexpr calc_err_type_t get_err_type() const {
+            return err_type;
+        } 
+
+        constexpr const auto& get_expr() const{
+            return wrong_expr;
+        }
+        
+        constexpr const auto& get_err_msg() const{
+            return err_msg;
+        }
+
+        constexpr const auto& get_start() const{
+            return start;
+        }
+
+        constexpr const auto& get_end() const{
+            return end;
+        }
+
+    private:
+        constexpr calc_err(
+            calc_err_type_t type, 
+            std::string_view msg, 
+            std::optional<std::string_view> wrong, 
+            std::optional<size_t> s, 
+            std::optional<size_t> e
+        ):
             err_type(type), 
+            wrong_expr(std::nullopt),
             start(s), 
             end(e)
         {
             err_msg.fill(0);
-            wrong_expr.fill(0);
-
             my_strncpy(err_msg.data(), msg.data(), err_msg.max_size());
-            my_strncpy(wrong_expr.data(), wrong.data(), wrong_expr.max_size());
-        }
 
-        static constexpr std::string err_to_string(ev::err_type_t err){
-            using enum ev::err_type_t;
-            switch(err){
-                case UNKNOWN_TOKEN:
-                    return "unknown token";
-                case EMPTY_EXPRESSION:
-                    return "empty expression";
-                case INVALID_LITERAL:
-                    return "invalid literal";
-                case EXPECTED_TOKEN:
-                    return "expected token";
-                case UNEXPECTED_TOKEN:
-                    return "unexpected token";
-                case INVALID_EXPR:
-                    return "invalid expression";
-                
-                default:
-                    return "Unkown error";
+            if(wrong){
+                wrong_expr.emplace().fill(0);
+                my_strncpy(wrong_expr->data(), wrong->data(), wrong_expr->max_size());
             }
-        };
+        }
     };
 }
-
 
 template <>
 struct std::formatter<ev::calc_err>{
@@ -105,28 +121,29 @@ struct std::formatter<ev::calc_err>{
 
         return it;
     }
-
     
     auto format(ev::calc_err s, auto& ctx) const {
-        if(s.start == s.end){
+        if(!s.get_start().has_value()){
             return std::format_to(
                 ctx.out(), 
                 RED "error:" RESET " {}", 
-                s.err_msg.data()
+                s.get_err_msg().data()
             );
         }
 
-        std::string wrong = s.wrong_expr.data();
-        const auto wrong_part_1 = wrong.substr(0, s.start);
-        const auto wrong_part_2 = wrong.substr(s.start, s.end - s.start);
-        const auto wrong_part_3 = wrong.substr(s.end, wrong.length() - s.end);
+        // the fields used here must be present according to the class invariant
+        // it's safe to dereference them
+        std::string wrong = s.get_expr()->data();
+        const auto wrong_part_1 = wrong.substr(0, *s.get_start());
+        const auto wrong_part_2 = wrong.substr(*s.get_start(), *s.get_end() - *s.get_start());
+        const auto wrong_part_3 = wrong.substr(*s.get_end(), wrong.length() - *s.get_end());
 
-        const auto spaces = std::string(s.start, ' ');
-        const auto underline = std::string(s.end - s.start - 1, '~');
+        const auto spaces = std::string(*s.get_start(), ' ');
+        const auto underline = std::string(*s.get_end() - *s.get_start() - 1, '~');
         return std::format_to(
             ctx.out(), 
             RED "error:" RESET " {}\n{}" RED "{}" RESET "{}\n{}" RED "^{}" RESET, 
-            s.err_msg.data(), 
+            s.get_err_msg().data(), 
             wrong_part_1,
             wrong_part_2,
             wrong_part_3,
