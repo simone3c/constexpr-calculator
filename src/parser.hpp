@@ -24,25 +24,27 @@
 namespace ev{
 
     namespace {
-    template<typename evaluation_t>
-    requires std::is_arithmetic<evaluation_t>::value
-    class parser{
-
+        
+        template<typename eval_t>
+        requires std::is_arithmetic<eval_t>::value
+        class parser{
+            
         struct expr{
-            constexpr virtual evaluation_t evaluate() const = 0;
+            constexpr virtual eval_t evaluate() const = 0;
             constexpr virtual ~expr() = default;
         };
+            
+        using expr_ptr_t = std::unique_ptr<expr>;
 
         struct add : expr{
-            std::unique_ptr<expr> l;
-            std::unique_ptr<expr> r;
-            add() = delete;
+            expr_ptr_t l;
+            expr_ptr_t r;
 
-            constexpr add(std::unique_ptr<expr>&& l2, std::unique_ptr<expr>&& r2) noexcept: 
+            constexpr add(expr_ptr_t&& l2, expr_ptr_t&& r2) noexcept: 
                 l(std::move(l2)), r(std::move(r2))
             {}
 
-            constexpr evaluation_t evaluate() const {
+            constexpr eval_t evaluate() const {
                 return l->evaluate() + r->evaluate();
             }
 
@@ -50,64 +52,58 @@ namespace ev{
         };
 
         struct atom : expr{
-            std::unique_ptr<expr> data;
-            constexpr evaluation_t evaluate() const = 0;
-            atom() = delete;
-            atom(const atom& other) = delete;
-            atom(atom&& other) = delete;
-            constexpr atom(std::unique_ptr<expr>&& ptr) noexcept: data(std::move(ptr)){}
+            expr_ptr_t data;
 
-            atom operator=(const atom& other) = delete;
-            atom operator=(atom&& other) = delete;
+            constexpr atom(expr_ptr_t&& ptr) noexcept: data(std::move(ptr)){}
         };
 
         struct unary_minus : atom{
-            explicit constexpr unary_minus(std::unique_ptr<expr>&& next) noexcept: atom::atom(std::move(next)){}
-            constexpr evaluation_t evaluate() const {
+            explicit constexpr unary_minus(expr_ptr_t&& next) noexcept: atom::atom(std::move(next)){}
+            constexpr eval_t evaluate() const {
                 return -atom::data->evaluate();
             };
         };
 
         struct lit : atom{
-            evaluation_t value;
-            explicit constexpr lit(evaluation_t v) noexcept: atom::atom(nullptr), value(v){}
+            eval_t value;
+            explicit constexpr lit(eval_t v) noexcept: atom::atom(nullptr), value(v){}
 
-            constexpr evaluation_t evaluate() const {
+            constexpr eval_t evaluate() const {
                 return value;
             }
         };
 
-        std::unique_ptr<expr> root;
+        expr_ptr_t root;
         tokenizer t;
+        std::string expr;
 
     public:
         constexpr parser() = default;
 
-        explicit constexpr parser(std::string_view input): root(nullptr){
-            parse(input);
-        }
-
-        constexpr void parse(std::string_view input){
+        constexpr ev::error parse(std::string_view input){
+            using enum ev::error::err_type_t;
             root.reset();
-            if(!t.tokenize(input))
-                return;
 
-            auto tmp = parse();
+            ev::error err = t.tokenize(input);
+            if(err.err_type != NO_ERROR)
+                return err;
+
+            auto tmp = parse_exp();
 
             if(!tmp){
-                println("{}", tmp.error());
-                return;
+                return ev::error::basic_error(UNEXPECTED_TOKEN, tmp.error());
             }
 
             if(t.has_more_tokens()){
-            std::puts("Invalid expression, too many tokens ........ evaluation_tODO");
-                return;
+                return ev::error::basic_error(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
             }
 
             root = std::move(*tmp);
+
+            return ev::error::no_error();
         }
 
-        constexpr std::expected<std::unique_ptr<expr>, std::string> parse(){
+        constexpr std::expected<expr_ptr_t, std::string> parse_exp(){
 
             auto next_expr = parse_atom();
             if(!next_expr){
@@ -129,9 +125,9 @@ namespace ev{
             return next_expr;
         }
 
-        constexpr std::expected<std::unique_ptr<expr>, std::string> parse_atom(){
-            std::expected<std::unique_ptr<expr>, std::string> tmp;
-            std::optional<evaluation_t> lit_val;
+        constexpr std::expected<expr_ptr_t, std::string> parse_atom(){
+            std::expected<expr_ptr_t, std::string> tmp;
+            std::optional<eval_t> lit_val;
 
             auto tok = t.next();
 
@@ -141,7 +137,7 @@ namespace ev{
             
             switch (tok->type){
             case tokenizer::TOKEN_TYPE::OPEN_PAR:
-                tmp = parse();
+                tmp = parse_exp();
                 if(!tmp){
                     return std::unexpected("Empty paranthesis");
                 }
@@ -181,15 +177,21 @@ namespace ev{
 
         // when dvision will be a thing, maybe the evaluation will need to return
         // an expected in order to handle divison by 0... sqrt(-1)....
-        constexpr std::optional<evaluation_t> evaluate() const{
+        constexpr std::expected<eval_t, ev::error> evaluate(std::string_view str){
+            using enum ev::error::err_type_t;
+            ev::error err = parse(str);
+            if(err.err_type != NO_ERROR){
+                return std::unexpected(err);
+            }
+
             if(root == nullptr)
-                return std::nullopt;
+                return std::unexpected(ev::error::basic_error(INVALID_EXPR, "Parsing failed"));
 
             return root->evaluate();
         }
 
-        constexpr std::optional<evaluation_t> lit_convert(std::string_view n){
-            evaluation_t ret = 0;
+        constexpr std::optional<eval_t> lit_convert(std::string_view n){
+            eval_t ret = 0;
             size_t i = 0;
             bool neg = false;
 
@@ -220,10 +222,10 @@ namespace ev{
     };
 }
 
-    template<typename evaluation_t>
-    constexpr std::optional<evaluation_t> evaluate(std::string_view str)
-    requires std::is_arithmetic<evaluation_t>::value{
-        return parser<evaluation_t>(str).evaluate();
+    template<typename eval_t>
+    constexpr std::expected<eval_t, ev::error> evaluate(std::string_view str)
+    requires std::is_arithmetic<eval_t>::value{
+        return parser<eval_t>().evaluate(str);
     }
 }
 
