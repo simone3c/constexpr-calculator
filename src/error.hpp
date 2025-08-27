@@ -14,36 +14,51 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-namespace ev{
-    struct error{
-        enum class err_type_t{
-            UNKNOWN_TOKEN,
-            EMPTY_EXPRESSION,
-            INVALID_LITERAL,
-            EXPECTED_TOKEN,
-            EMPTY_PAR,
-            UNEXPECTED_TOKEN,
-            INVALID_EXPR,
-            NO_ERROR
+static constexpr void my_strncpy(char* dst, const char* src, ssize_t n){
+    while(n-- && *src){
+        *dst++ = *src++;
+    }
+}
 
-        };
+namespace ev{
+    enum class err_type_t{
+        UNKNOWN_TOKEN,
+        EMPTY_EXPRESSION,
+        INVALID_LITERAL,
+        EXPECTED_TOKEN,
+        EMPTY_PAR,
+        UNEXPECTED_TOKEN,
+        INVALID_EXPR,
+        NO_ERROR
+
+    };
+    template<size_t buf_sz = 128>
+    struct error{
+        
         using enum err_type_t;
         
         err_type_t err_type;
-        std::array<char, 65> err_msg;
-        std::array<char, 257> wrong_expr;
+        std::array<char, buf_sz + 1> err_msg;
+        std::array<char, buf_sz + 1> wrong_expr;
         size_t start;
         size_t end;
 
-        static constexpr error basic_error(err_type_t type, std::string_view msg){
-            return error(type, msg, "", 0, 0);
+
+        static constexpr error<buf_sz> error_message(err_type_t type, std::string_view msg){
+            return error<buf_sz>(type, msg, "", 0, 0);
         }
         
-        static constexpr error no_error(){
-            return error(NO_ERROR, "", "", 0, 0);
+        static constexpr error<buf_sz> no_error(){
+            return error<buf_sz>(NO_ERROR, "", "", 0, 0);
         }
 
-        constexpr error(err_type_t type, std::string_view msg, std::string wrong, size_t s, size_t e):
+        static constexpr error<buf_sz> error_with_wrong_token(err_type_t type, std::string_view msg, std::string_view wrong, size_t start, size_t end){
+            return error<buf_sz>(type, msg, wrong, start, end);
+        }
+
+
+private:
+        constexpr error(err_type_t type, std::string_view msg, std::string_view wrong, size_t s, size_t e):
             err_type(type), 
             start(s), 
             end(e)
@@ -51,18 +66,12 @@ namespace ev{
             err_msg.fill(0);
             wrong_expr.fill(0);
 
-            //TODO fix copy logic
-            if(msg.size() > 0)
-                for(int i = 0; (i < msg.size() - 1) && msg[i]; ++i)
-                    err_msg[i] = msg[i];
-
-            if(wrong.size() > 0)
-                for(int i = 0; (i < wrong.size() - 1) && wrong[i]; ++i)
-                    wrong_expr[i] = wrong[i];
+            my_strncpy(err_msg.data(), msg.data(), err_msg.max_size());
+            my_strncpy(wrong_expr.data(), wrong.data(), wrong_expr.max_size());
         }
 
-        static constexpr std::string err_to_string(error::err_type_t err){
-            using enum error::err_type_t;
+        static constexpr std::string err_to_string(ev::err_type_t err){
+            using enum ev::err_type_t;
             switch(err){
                 case UNKNOWN_TOKEN:
                     return "unknown token";
@@ -83,21 +92,11 @@ namespace ev{
                     return "Unkown error";
             }
         };
-    };   
-
-    constexpr void print_error(const ev::error& err){
-        // if(std::is_constant_evaluated()){
-        //     throw err.err_msg;
-        // }
-        // else{
-            std::println("{}", err.err_msg.data());
-        //}
-    }
-
+    };
 }
 
 template<>
-struct std::formatter<ev::error>{
+struct std::formatter<ev::error<>>{
 
     constexpr auto parse(auto& ctx){
         auto it = ctx.begin();
@@ -109,22 +108,29 @@ struct std::formatter<ev::error>{
     }
 
     
-    auto format(ev::error s, auto& ctx) const {
-        if(s.start == s.end && s.start == 0){
+    auto format(ev::error<> s, auto& ctx) const {
+        if(s.start == s.end){
             return std::format_to(
                 ctx.out(), 
                 RED "error:" RESET " {}", 
-                s.err_msg
+                s.err_msg.data()
             );
         }
 
-        auto spaces = std::string(s.start, ' ');
-        auto underline = std::string(s.end - s.start - 1, '~');
+        std::string wrong = s.wrong_expr.data();
+        const auto wrong_part_1 = wrong.substr(0, s.start);
+        const auto wrong_part_2 = wrong.substr(s.start, s.end - s.start);
+        const auto wrong_part_3 = wrong.substr(s.end, wrong.length() - s.end);
+
+        const auto spaces = std::string(s.start, ' ');
+        const auto underline = std::string(s.end - s.start - 1, '~');
         return std::format_to(
             ctx.out(), 
-            RED "error:" RESET " {}\n{}\n{}^{}", 
+            RED "error:" RESET " {}\n{}" RED "{}" RESET "{}\n{}" RED "^{}" RESET, 
             s.err_msg.data(), 
-            s.wrong_expr.data(), 
+            wrong_part_1,
+            wrong_part_2,
+            wrong_part_3,
             spaces, 
             underline
         );

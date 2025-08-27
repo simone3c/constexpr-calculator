@@ -29,6 +29,7 @@ using std::print;
 
 
 struct tokenizer{
+    using enum ev::err_type_t;
 
     enum class TOKEN_TYPE{
         LIT,
@@ -36,12 +37,13 @@ struct tokenizer{
         CLOSED_PAR,
         PLUS,
         MINUS,
-        EXPONENT,
     };
 
     struct token{
         TOKEN_TYPE type;
         std::string val;
+        size_t start;
+        size_t end;
     };
 
     std::vector<token> tokens;
@@ -49,13 +51,13 @@ struct tokenizer{
 
     constexpr tokenizer() = default;
 
-    constexpr ev::error tokenize(std::string_view input){
+    constexpr ev::error<> tokenize(std::string_view input){
         tokens.clear();
         str.clear();
-        int i = 0;
+        size_t start, end = 0;
 
         if(input.size() == 0){
-            return ev::error::basic_error(ev::error::err_type_t::EMPTY_EXPRESSION, "insert at least one character");
+            return ev::error<>::error_message(EMPTY_EXPRESSION, "Insert at least one character");
         }
 
         str = input;
@@ -64,7 +66,8 @@ struct tokenizer{
         for(const auto& r : res){
             token t;
 
-            i += r.str().size();
+            start = end;
+            end += r.str().size();
 
             if(r.get<"lit">()){
                 t.type = TOKEN_TYPE::LIT;
@@ -85,20 +88,22 @@ struct tokenizer{
                 continue;
             }
             else{
-                i -= r.str().size();
+                auto err = ev::error<>::error_with_wrong_token(UNKNOWN_TOKEN, "Unknown symbol found", str, start, end);
                 // clear internal status
                 tokens.clear();
                 str.clear();
 
-                return ev::error::basic_error(ev::error::err_type_t::UNKNOWN_TOKEN, "Unknown symbol found");
+                return err;
             }
             t.val = r.str();
+            t.start = start;
+            t.end = end;
             tokens.push_back(t);
             //println("Pushed '{}'", r.str());
 
         }
 
-        return ev::error::no_error();
+        return ev::error<>::no_error();
     }
 
     [[nodiscard]] constexpr std::optional<token> peek() const {

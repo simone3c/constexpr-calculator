@@ -8,14 +8,37 @@
 
 using std::println;
 
+void f(){
+    std::string expr;
+    std::getline(std::cin, expr);
+
+    auto ret = ev::evaluate<int>(expr);
+
+    if(ret){
+        println("Answer is {}", *ret);
+    }
+    else{
+        println("{}", ret.error());
+    }
+}
+
+void f2(){
+    constexpr std::string_view s = "1+997";
+    
+    constexpr auto ret = ev::evaluate<int>(s);
+    static_assert(ret.has_value());
+
+    if(ret){
+        println("\nAnswer is {}", *ret);
+    }
+    else{
+        println("{}", ret.error());
+    }
+}
 
 int main(){
-
-    constexpr auto v = ev::evaluate<int>("1+1");
-    static_assert(ev::evaluate<int>("1+1") == 2);
-    // if(v){
-    //     println("\nAnswer is {}", *v);
-    // }
+    //f();
+    f2();
 
     return 0;
 }

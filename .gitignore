@@ -2,6 +2,8 @@ build/
 external/
 .vscode
 
+*.s
+
 # Prerequisites
 *.d
 

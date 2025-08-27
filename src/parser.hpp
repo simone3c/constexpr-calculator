@@ -1,4 +1,4 @@
-#ifndef _Mevaluation_t_PARSER_
+#ifndef _MY_PARSER_
 #define _MY_PARSER_
 
 #include <memory>
@@ -80,8 +80,8 @@ namespace ev{
     public:
         constexpr parser() = default;
 
-        constexpr ev::error parse(std::string_view input){
-            using enum ev::error::err_type_t;
+        constexpr ev::error<> parse(std::string_view input){
+            using enum ev::err_type_t;
             root.reset();
 
             ev::error err = t.tokenize(input);
@@ -91,16 +91,16 @@ namespace ev{
             auto tmp = parse_exp();
 
             if(!tmp){
-                return ev::error::basic_error(UNEXPECTED_TOKEN, tmp.error());
+                return ev::error<>::error_message(UNEXPECTED_TOKEN, tmp.error());
             }
 
             if(t.has_more_tokens()){
-                return ev::error::basic_error(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
+                return ev::error<>::error_message(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
             }
 
             root = std::move(*tmp);
 
-            return ev::error::no_error();
+            return ev::error<>::no_error();
         }
 
         constexpr std::expected<expr_ptr_t, std::string> parse_exp(){
@@ -177,15 +177,15 @@ namespace ev{
 
         // when dvision will be a thing, maybe the evaluation will need to return
         // an expected in order to handle divison by 0... sqrt(-1)....
-        constexpr std::expected<eval_t, ev::error> evaluate(std::string_view str){
-            using enum ev::error::err_type_t;
+        constexpr std::expected<eval_t, ev::error<>> evaluate(std::string_view str){
+            using enum ev::err_type_t;
             ev::error err = parse(str);
             if(err.err_type != NO_ERROR){
                 return std::unexpected(err);
             }
 
             if(root == nullptr)
-                return std::unexpected(ev::error::basic_error(INVALID_EXPR, "Parsing failed"));
+                return std::unexpected(ev::error<>::error_message(INVALID_EXPR, "Parsing failed"));
 
             return root->evaluate();
         }
@@ -223,7 +223,7 @@ namespace ev{
 }
 
     template<typename eval_t>
-    constexpr std::expected<eval_t, ev::error> evaluate(std::string_view str)
+    constexpr std::expected<eval_t, ev::error<>> evaluate(std::string_view str)
     requires std::is_arithmetic<eval_t>::value{
         return parser<eval_t>().evaluate(str);
     }
