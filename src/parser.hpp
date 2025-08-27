@@ -80,30 +80,53 @@ namespace ev{
     public:
         constexpr parser() = default;
 
-        constexpr ev::error<> parse(std::string_view input){
+        // when dvision will be a thing, maybe the evaluation will need to return
+        // an expected in order to handle divison by 0... sqrt(-1)....
+        constexpr std::expected<eval_t, ev::calc_err> evaluate(std::string_view str){
             using enum ev::err_type_t;
-            root.reset();
 
-            ev::error err = t.tokenize(input);
+            ev::calc_err err = parse(str);
+            if(err.err_type != NO_ERROR){
+                return std::unexpected(err);
+            }
+
+            if(root == nullptr)
+                return std::unexpected(ev::calc_err::error_message(INVALID_EXPR, "Parsing failed"));
+
+            return root->evaluate();
+        }
+
+    private:
+        constexpr ev::calc_err parse(std::string_view input){
+            using enum ev::err_type_t;
+
+            root.reset();
+            expr.clear();
+
+            //TODO remove spaces and formatt input
+            expr = std::string{input};
+
+
+            ev::calc_err err = t.tokenize(input);
             if(err.err_type != NO_ERROR)
                 return err;
 
             auto tmp = parse_exp();
 
             if(!tmp){
-                return ev::error<>::error_message(UNEXPECTED_TOKEN, tmp.error());
+                return tmp.error();
             }
 
             if(t.has_more_tokens()){
-                return ev::error<>::error_message(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
+                return ev::calc_err::error_message(UNEXPECTED_TOKEN, "Unexpected expression terminator found");
             }
 
             root = std::move(*tmp);
 
-            return ev::error<>::no_error();
+            return ev::calc_err::no_error();
         }
 
-        constexpr std::expected<expr_ptr_t, std::string> parse_exp(){
+        constexpr std::expected<expr_ptr_t, ev::calc_err> parse_exp(){
 
             auto next_expr = parse_atom();
             if(!next_expr){
@@ -125,35 +148,38 @@ namespace ev{
             return next_expr;
         }
 
-        constexpr std::expected<expr_ptr_t, std::string> parse_atom(){
-            std::expected<expr_ptr_t, std::string> tmp;
+        constexpr std::expected<expr_ptr_t, ev::calc_err> parse_atom(){
+            using enum ev::err_type_t;
+
+            std::expected<expr_ptr_t, ev::calc_err> tmp;
             std::optional<eval_t> lit_val;
 
             auto tok = t.next();
 
             if(!tok.has_value()){
-                return std::unexpected("Missing token here, expected ...... evaluation_tODO");
+                return std::unexpected(ev::calc_err::error_with_wrong_token(EXPECTED_TOKEN, "Expected token, found end-of-expression instead", expr, expr.size() - 1, expr.size()));
             }
             
             switch (tok->type){
             case tokenizer::TOKEN_TYPE::OPEN_PAR:
                 tmp = parse_exp();
                 if(!tmp){
-                    return std::unexpected("Empty paranthesis");
+                    return tmp;
                 }
+
                 if(!t.consume(tokenizer::TOKEN_TYPE::CLOSED_PAR)){
-                    return std::unexpected("Missing a closed paranthesis ')'");
+                    return std::unexpected(ev::calc_err::error_with_wrong_token(EXPECTED_TOKEN, "Expected a closed bracket ')'", expr, tok->start, tok->end));
                 }
                 break;
 
             case tokenizer::TOKEN_TYPE::MINUS:
                 if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
-                    return std::unexpected("Cannot have two '-' symbol back-to-back");
+                    return std::unexpected(ev::calc_err::error_with_wrong_token(UNEXPECTED_TOKEN, "Unexpected '-' after another '-' symbol", expr, tok->start, tok->end));
                 }
 
                 tmp = parse_atom();
                 if(!tmp){
-                    return std::unexpected("Unary minus without argument");
+                    return tmp;
                 }
                 tmp = std::make_unique<unary_minus>(std::move(*tmp));
                 break;
@@ -161,7 +187,7 @@ namespace ev{
             case tokenizer::TOKEN_TYPE::LIT:
                 lit_val = lit_convert(tok->val);
                 if(!lit_val){
-                    return std::unexpected(std::format("Invalid literal {}", tok->val));
+                    return std::unexpected(ev::calc_err::error_with_wrong_token(INVALID_LITERAL, "Invalid literal", expr, tok->start, tok->end));
                 }
                 tmp = std::make_unique<lit>(*lit_val); 
                 break;
@@ -169,25 +195,10 @@ namespace ev{
             // sin, cos, ...
 
             default:
-                return std::unexpected("Bad expression, expected ..... evaluation_tODO");
+                return std::unexpected(ev::calc_err::error_with_wrong_token(INVALID_EXPR, "Invalid expression, expected a literal or function", expr, tok->start, tok->end));
             }
 
             return tmp;
-        }
-
-        // when dvision will be a thing, maybe the evaluation will need to return
-        // an expected in order to handle divison by 0... sqrt(-1)....
-        constexpr std::expected<eval_t, ev::error<>> evaluate(std::string_view str){
-            using enum ev::err_type_t;
-            ev::error err = parse(str);
-            if(err.err_type != NO_ERROR){
-                return std::unexpected(err);
-            }
-
-            if(root == nullptr)
-                return std::unexpected(ev::error<>::error_message(INVALID_EXPR, "Parsing failed"));
-
-            return root->evaluate();
         }
 
         constexpr std::optional<eval_t> lit_convert(std::string_view n){
@@ -223,7 +234,7 @@ namespace ev{
 }
 
     template<typename eval_t>
-    constexpr std::expected<eval_t, ev::error<>> evaluate(std::string_view str)
+    constexpr std::expected<eval_t, ev::calc_err> evaluate(std::string_view str)
     requires std::is_arithmetic<eval_t>::value{
         return parser<eval_t>().evaluate(str);
     }

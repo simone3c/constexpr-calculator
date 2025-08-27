@@ -18,3 +18,10 @@ TEST(calc_test, sum){
     static_assert(ev::evaluate<int>("(-1) + (-1 + -10 + (10 + 1))") == -1);
     static_assert(ev::evaluate<int>("-10 + -10") == -20);
 }
+
+TEST(calc_test, errors){
+    using enum ev::err_type_t;
+   // static_assert(ev::evaluate<int>("1") == 1);
+    static_assert(ev::evaluate<int>("1 + 1p").error().err_type == UNKNOWN_TOKEN);
+
+}

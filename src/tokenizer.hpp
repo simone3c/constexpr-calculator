@@ -51,13 +51,13 @@ struct tokenizer{
 
     constexpr tokenizer() = default;
 
-    constexpr ev::error<> tokenize(std::string_view input){
+    constexpr ev::calc_err tokenize(std::string_view input){
         tokens.clear();
         str.clear();
         size_t start, end = 0;
 
         if(input.size() == 0){
-            return ev::error<>::error_message(EMPTY_EXPRESSION, "Insert at least one character");
+            return ev::calc_err::error_message(EMPTY_EXPRESSION, "Insert at least one character");
         }
 
         str = input;
@@ -88,7 +88,7 @@ struct tokenizer{
                 continue;
             }
             else{
-                auto err = ev::error<>::error_with_wrong_token(UNKNOWN_TOKEN, "Unknown symbol found", str, start, end);
+                auto err = ev::calc_err::error_with_wrong_token(UNKNOWN_TOKEN, "Unknown symbol found", str, start, end);
                 // clear internal status
                 tokens.clear();
                 str.clear();
@@ -103,7 +103,7 @@ struct tokenizer{
 
         }
 
-        return ev::error<>::no_error();
+        return ev::calc_err::no_error();
     }
 
     [[nodiscard]] constexpr std::optional<token> peek() const {

@@ -14,6 +14,8 @@
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
+static constexpr size_t buf_sz = 127;
+
 static constexpr void my_strncpy(char* dst, const char* src, ssize_t n){
     while(n-- && *src){
         *dst++ = *src++;
@@ -26,14 +28,13 @@ namespace ev{
         EMPTY_EXPRESSION,
         INVALID_LITERAL,
         EXPECTED_TOKEN,
-        EMPTY_PAR,
         UNEXPECTED_TOKEN,
         INVALID_EXPR,
         NO_ERROR
 
     };
-    template<size_t buf_sz = 128>
-    struct error{
+
+    struct calc_err{
         
         using enum err_type_t;
         
@@ -44,21 +45,20 @@ namespace ev{
         size_t end;
 
 
-        static constexpr error<buf_sz> error_message(err_type_t type, std::string_view msg){
-            return error<buf_sz>(type, msg, "", 0, 0);
+        static constexpr calc_err error_message(err_type_t type, std::string_view msg){
+            return calc_err(type, msg, "", 0, 0);
         }
         
-        static constexpr error<buf_sz> no_error(){
-            return error<buf_sz>(NO_ERROR, "", "", 0, 0);
+        static constexpr calc_err no_error(){
+            return calc_err(NO_ERROR, "", "", 0, 0);
         }
 
-        static constexpr error<buf_sz> error_with_wrong_token(err_type_t type, std::string_view msg, std::string_view wrong, size_t start, size_t end){
-            return error<buf_sz>(type, msg, wrong, start, end);
+        static constexpr calc_err error_with_wrong_token(err_type_t type, std::string_view msg, std::string_view wrong, size_t start, size_t end){
+            return calc_err(type, msg, wrong, start, end);
         }
-
 
 private:
-        constexpr error(err_type_t type, std::string_view msg, std::string_view wrong, size_t s, size_t e):
+        constexpr calc_err(err_type_t type, std::string_view msg, std::string_view wrong, size_t s, size_t e):
             err_type(type), 
             start(s), 
             end(e)
@@ -81,8 +81,6 @@ private:
                     return "invalid literal";
                 case EXPECTED_TOKEN:
                     return "expected token";
-                case EMPTY_PAR:
-                    return "empty parenthesis";
                 case UNEXPECTED_TOKEN:
                     return "unexpected token";
                 case INVALID_EXPR:
@@ -95,8 +93,9 @@ private:
     };
 }
 
-template<>
-struct std::formatter<ev::error<>>{
+
+template <>
+struct std::formatter<ev::calc_err>{
 
     constexpr auto parse(auto& ctx){
         auto it = ctx.begin();
@@ -108,7 +107,7 @@ struct std::formatter<ev::error<>>{
     }
 
     
-    auto format(ev::error<> s, auto& ctx) const {
+    auto format(ev::calc_err s, auto& ctx) const {
         if(s.start == s.end){
             return std::format_to(
                 ctx.out(), 
