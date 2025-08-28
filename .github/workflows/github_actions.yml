@@ -1,0 +1,25 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: run calc_test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: cmake init
+      run: cmake -B build/ -S .
+      
+    - name: cmake build
+      run: cmake --build --build
+      
+    - name: run tests
+      run: build/calc_test
+      
