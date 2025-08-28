@@ -16,9 +16,8 @@
 // };
 
 
-
 /*
-    EXPR: MUL (('+' MUL)? | ('-' MUL)?) // maybe force to write "x-(-4)" insted of "x--4"
+    EXPR: MUL (('+' MUL)? | ('-' MUL)?)
     MUL: ATOM ('*' ATOM)? // DIV...
     ATOM: '-'? POS_ATOM
     POS_ATOM: LIT | '(' EXPR ')' // '^', SIN, LOG, ...

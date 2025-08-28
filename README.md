@@ -68,3 +68,4 @@ int main(){
 - definite intgrals
 - summation and product notation
 - cmake option for not biulding tests
+- change grammar to force writing "x-(-4)" insted of "x--4"
