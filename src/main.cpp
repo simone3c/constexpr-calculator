@@ -23,7 +23,7 @@ void f(){
 }
 
 void f2(){
-    constexpr std::string_view s = "1+9977";
+    constexpr auto s = "1+9977";
     
     constexpr auto ret = ev::evaluate<int>(s);
     static_assert(ret.has_value());
@@ -37,8 +37,8 @@ void f2(){
 }
 
 int main(){
-    f();
-    //f2();
+    //f();
+    f2();
 
     return 0;
 }
