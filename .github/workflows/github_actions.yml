@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive 
 
     - name: g++14 installation
       run: |
@@ -25,9 +27,6 @@ jobs:
         sudo update-alternatives --set c++ /usr/bin/g++
         sudo update-alternatives --config g++
 
-    - name: submodules
-      run: git submodule update
-    
     - name: cmake init
       run: cmake -B build/ -S .
       
