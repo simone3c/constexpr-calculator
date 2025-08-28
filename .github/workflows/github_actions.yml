@@ -18,7 +18,7 @@ jobs:
       run: cmake -B build/ -S .
       
     - name: cmake build
-      run: cmake --build --build
+      run: cmake --build build
       
     - name: run tests
       run: build/calc_test
