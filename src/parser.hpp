@@ -18,13 +18,11 @@
 
 
 /*
-    EXPR: MUL ('+' MUL)? // DIV...
-    MUL: ATOM ('*' ATOM)? // SUB...
+    EXPR: MUL (('+' MUL)? | ('-' MUL)?) // maybe force to write "x-(-4)" insted of "x--4"
+    MUL: ATOM ('*' ATOM)? // DIV...
     ATOM: '-'? POS_ATOM
     POS_ATOM: LIT | '(' EXPR ')' // '^', SIN, LOG, ...
     LIT: int // double
-
-
 */
 
 namespace ev{
@@ -58,6 +56,24 @@ namespace {
         }
 
         constexpr ~add() = default;
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct sub : expr<eval_t>{
+        expr_ptr_t<eval_t> l;
+        expr_ptr_t<eval_t> r;
+
+        constexpr sub(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
+            l(std::move(l2)), 
+            r(std::move(r2))
+        {}
+
+        constexpr eval_t evaluate() const {
+            return l->evaluate() - r->evaluate();
+        }
+
+        constexpr ~sub() = default;
     };
 
     template<typename eval_t>
@@ -172,18 +188,26 @@ namespace {
                 return next_expr;
             }
             
-            while(t.match(tokenizer::TOKEN_TYPE::PLUS)){
-                t.next();
+            while(t.match(tokenizer::TOKEN_TYPE::PLUS) || t.match(tokenizer::TOKEN_TYPE::MINUS)){
+                auto next = t.next();
 
                 auto next_expr_2 = parse_atom();
                 if(!next_expr_2){
                     return next_expr_2;
                 }
 
-                next_expr = std::make_unique<add<eval_t>>(
-                    std::move(*next_expr), 
-                    std::move(*next_expr_2)
-                );
+                if(next->type == tokenizer::TOKEN_TYPE::PLUS){
+                    next_expr = std::make_unique<add<eval_t>>(
+                        std::move(*next_expr), 
+                        std::move(*next_expr_2)
+                    );
+                }
+                else{
+                    next_expr = std::make_unique<sub<eval_t>>(
+                        std::move(*next_expr), 
+                        std::move(*next_expr_2)
+                    );
+                }
             }
 
             return next_expr;

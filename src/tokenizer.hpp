@@ -135,7 +135,12 @@ namespace{
         }
 
         [[nodiscard]] constexpr bool match(TOKEN_TYPE other) const {
-            return peek().transform([other](const token& tok){return tok.type == other;}).value_or(false);
+            return peek().transform([&other]
+                (const token& tok){
+                    return tok.type == other;      
+                }
+            )
+            .value_or(false);
         }
 
         [[nodiscard]] constexpr bool consume(TOKEN_TYPE other) {
