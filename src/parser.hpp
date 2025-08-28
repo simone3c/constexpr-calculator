@@ -65,7 +65,7 @@ namespace {
     struct atom : expr<eval_t>{
         expr_ptr_t<eval_t> data;
 
-        constexpr atom(expr_ptr_t<eval_t>&& ptr) noexcept: 
+        explicit constexpr atom(expr_ptr_t<eval_t>&& ptr) noexcept: 
             data(std::move(ptr))
         {}
     };
@@ -84,10 +84,9 @@ namespace {
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
-    struct lit : atom<eval_t>{
+    struct lit : expr<eval_t>{
         eval_t value;
         explicit constexpr lit(eval_t v) noexcept: 
-            atom<eval_t>::atom(nullptr), 
             value(v)
         {}
 
@@ -135,11 +134,16 @@ namespace {
             root.reset();
             expr.clear();
 
-            //TODO remove spaces and formatt input
             expr = std::string{input};
+            auto new_end = std::unique(std::begin(expr), std::end(expr), 
+                [](char c1, char c2){
+                    return c1 == c2 && (c1 == ' ' || c1 == '\t');
+                }
+            );
+            expr.erase(new_end, std::end(expr));
 
 
-            calc_err err = t.tokenize(input);
+            calc_err err = t.tokenize(expr);
             if(err.get_err_type() != NO_ERROR)
                 return err;
 
@@ -168,7 +172,6 @@ namespace {
                 return next_expr;
             }
             
-            // SUB ....
             while(t.match(tokenizer::TOKEN_TYPE::PLUS)){
                 t.next();
 
