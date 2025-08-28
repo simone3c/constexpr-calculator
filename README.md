@@ -11,7 +11,7 @@ Constexpr-enabled interpreter of math expression developed in C++23
     > git clone https://github.com/simone3c/constexpr-calculator.git --recurse-submodules
 
     # build
-    > cmake -B build
+    > cmake -B build -DBUILD_TESTS=OFF
     > cmake --build build
 
     # run
@@ -63,6 +63,7 @@ int main(){
 ```
 
 # TODO
+- literal with decimal notation
 - math functions
 - exponent
 - definite intgrals

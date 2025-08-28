@@ -26,7 +26,7 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>/)|(?<space>\\s+)|.+"
+#define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<space>\\s+)|.+"
 
 namespace ev{
 namespace{
@@ -57,6 +57,7 @@ namespace{
         constexpr tokenizer() = default;
 
         constexpr calc_err tokenize(std::string_view input){
+
             tokens.clear();
             str.clear();
             size_t start, end = 0;
@@ -76,6 +77,9 @@ namespace{
 
                 start = end;
                 end += r.str().size();
+
+                //println("Token '{}'", r.str());
+
 
                 if(r.get<"lit">()){
                     t.type = TOKEN_TYPE::LIT;
@@ -119,7 +123,6 @@ namespace{
                 t.start = start;
                 t.end = end;
                 tokens.push_back(t);
-                //println("Pushed '{}'", r.str());
 
             }
 

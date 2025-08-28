@@ -6,6 +6,7 @@
 #include <expected>
 #include <type_traits>
 #include <functional>
+#include <cmath>
 
 #include "tokenizer.hpp"
 
@@ -56,8 +57,8 @@ namespace {
 
         constexpr ret_val_t<eval_t> evaluate() const {
             auto left = l->evaluate();
-            if(!l){
-                return l;
+            if(!left){
+                return left;
             }
 
             auto right = r->evaluate();
@@ -87,10 +88,10 @@ namespace {
             if(!denom){
                 return denom;
             }
-            if(*denom == 0.){
+            if(std::fabs(*denom) < 1e-6){
                 return std::unexpected(
                     ev::calc_err::error_message(
-                        ev::calc_err_type_t::DIVSION_BY_ZERO, 
+                        ev::calc_err_type_t::DIVISION_BY_ZERO, 
                         "Division by 0 detected"
                     )
                 );
@@ -266,7 +267,7 @@ namespace {
 
         constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_exp(){
 
-            auto next_expr = parse_atom();
+            auto next_expr = parse_mul_div();
             if(!next_expr){
                 return next_expr;
             }
@@ -274,7 +275,7 @@ namespace {
             while(t.match(tokenizer::TOKEN_TYPE::PLUS) || t.match(tokenizer::TOKEN_TYPE::MINUS)){
                 auto next = t.next();
 
-                auto next_expr_2 = parse_atom();
+                auto next_expr_2 = parse_mul_div();
                 if(!next_expr_2){
                     return next_expr_2;
                 }
@@ -287,6 +288,38 @@ namespace {
                 }
                 else{
                     next_expr = std::make_unique<sub<eval_t>>(
+                        std::move(*next_expr), 
+                        std::move(*next_expr_2)
+                    );
+                }
+            }
+
+            return next_expr;
+        }
+
+        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_mul_div(){
+
+            auto next_expr = parse_atom();
+            if(!next_expr){
+                return next_expr;
+            }
+            
+            while(t.match(tokenizer::TOKEN_TYPE::ASTERISK) || t.match(tokenizer::TOKEN_TYPE::SLASH)){
+                auto next = t.next();
+
+                auto next_expr_2 = parse_atom();
+                if(!next_expr_2){
+                    return next_expr_2;
+                }
+
+                if(next->type == tokenizer::TOKEN_TYPE::ASTERISK){
+                    next_expr = std::make_unique<mult<eval_t>>(
+                        std::move(*next_expr), 
+                        std::move(*next_expr_2)
+                    );
+                }
+                else{
+                    next_expr = std::make_unique<div<eval_t>>(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     );

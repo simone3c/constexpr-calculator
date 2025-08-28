@@ -12,7 +12,7 @@ void f(){
     std::string expr;
     std::getline(std::cin, expr);
 
-    auto ret2 = ev::evaluate<uint32_t>(expr);
+    auto ret2 = ev::evaluate<double>(expr);
 
     if(ret2){
         println("Answer is {}", *ret2);
@@ -23,9 +23,9 @@ void f(){
 }
 
 void f2(){
-    constexpr auto s = "1+9977";
+    constexpr auto s = "1*10 / (3 / (2+1))";
     
-    constexpr auto ret = ev::evaluate<int>(s);
+    constexpr auto ret = ev::evaluate<double>(s);
     static_assert(ret.has_value());
 
     if(ret){
