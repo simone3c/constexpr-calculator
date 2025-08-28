@@ -26,7 +26,7 @@ jobs:
         sudo update-alternatives --config g++
 
     - name: submodules
-      run: git submodules update
+      run: git submodule update
     
     - name: cmake init
       run: cmake -B build/ -S .
