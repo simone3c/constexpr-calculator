@@ -12,13 +12,13 @@ void f(){
     std::string expr;
     std::getline(std::cin, expr);
 
-    auto ret = ev::evaluate<int>(expr);
+    auto ret2 = ev::evaluate<uint32_t>(expr);
 
-    if(ret){
-        println("Answer is {}", *ret);
+    if(ret2){
+        println("Answer is {}", *ret2);
     }
     else{
-        println("{}", ret.error());
+        println("{}", ret2.error());
     }
 }
 
@@ -37,8 +37,8 @@ void f2(){
 }
 
 int main(){
-    //f();
-    f2();
+    f();
+    //f2();
 
     return 0;
 }

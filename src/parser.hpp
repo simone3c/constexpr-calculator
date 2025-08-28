@@ -17,8 +17,8 @@
 
 
 /*
-    EXPR: MUL (('+' MUL)? | ('-' MUL)?)
-    MUL: ATOM ('*' ATOM)? // DIV...
+    EXPR: MUL (('+' MUL_DIV)? | ('-' MUL_DIV)?)
+    MUL_DIV: ATOM (('*' ATOM)? | ('/' ATOM)?)
     ATOM: '-'? POS_ATOM
     POS_ATOM: LIT | '(' EXPR ')' // '^', SIN, LOG, ...
     LIT: int // double
@@ -26,18 +26,80 @@
 
 namespace ev{
 
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    using ret_val_t = std::expected<eval_t, calc_err>;
+
 namespace {
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
     struct expr{
-        constexpr virtual eval_t evaluate() const = 0;
+        constexpr virtual ret_val_t<eval_t> evaluate() const = 0;
         constexpr virtual ~expr() = default;
     };
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
     using expr_ptr_t = std::unique_ptr<expr<eval_t>>;
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct mult : expr<eval_t>{
+        expr_ptr_t<eval_t> l;
+        expr_ptr_t<eval_t> r;
+
+        constexpr mult(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
+            l(std::move(l2)), 
+            r(std::move(r2))
+        {}
+
+        constexpr ret_val_t<eval_t> evaluate() const {
+            auto left = l->evaluate();
+            if(!l){
+                return l;
+            }
+
+            auto right = r->evaluate();
+            if(!right){
+                return right;
+            }
+
+            return *left * *right;
+        }
+
+        constexpr ~mult() = default;
+    };
+
+    template<typename eval_t>
+    requires std::is_arithmetic<eval_t>::value
+    struct div : expr<eval_t>{
+        expr_ptr_t<eval_t> n;
+        expr_ptr_t<eval_t> d;
+
+        constexpr div(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
+            n(std::move(l2)), 
+            d(std::move(r2))
+        {}
+
+        constexpr ret_val_t<eval_t> evaluate() const {
+            auto denom = d->evaluate();
+            if(!denom){
+                return denom;
+            }
+            if(*denom == 0.){
+                return std::unexpected(
+                    ev::calc_err::error_message(
+                        ev::calc_err_type_t::DIVSION_BY_ZERO, 
+                        "Division by 0 detected"
+                    )
+                );
+            }
+            return *n->evaluate() / *denom;
+        }
+
+        constexpr ~div() = default;
+    };
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
@@ -50,8 +112,18 @@ namespace {
             r(std::move(r2))
         {}
 
-        constexpr eval_t evaluate() const {
-            return l->evaluate() + r->evaluate();
+        constexpr ret_val_t<eval_t> evaluate() const {
+            auto left = l->evaluate();
+            if(!left){
+                return left;
+            }
+
+            auto right = r->evaluate();
+            if(!right){
+                return right;
+            }
+
+            return *left + *right;
         }
 
         constexpr ~add() = default;
@@ -68,8 +140,18 @@ namespace {
             r(std::move(r2))
         {}
 
-        constexpr eval_t evaluate() const {
-            return l->evaluate() - r->evaluate();
+        constexpr ret_val_t<eval_t> evaluate() const {
+            auto left = l->evaluate();
+            if(!left){
+                return left;
+            }
+
+            auto right = r->evaluate();
+            if(!right){
+                return right;
+            }
+
+            return *left - *right;
         }
 
         constexpr ~sub() = default;
@@ -92,8 +174,12 @@ namespace {
             atom<eval_t>::atom(std::move(next))
         {}
 
-        constexpr eval_t evaluate() const {
-            return -atom<eval_t>::data->evaluate();
+        constexpr ret_val_t<eval_t> evaluate() const {
+            auto val = atom<eval_t>::data->evaluate();
+            if(!val){
+                return val;
+            }
+            return -*val;
         };
     };
 
@@ -105,7 +191,7 @@ namespace {
             value(v)
         {}
 
-        constexpr eval_t evaluate() const {
+        constexpr ret_val_t<eval_t> evaluate() const {
             return value;
         }
     };
@@ -121,8 +207,6 @@ namespace {
     public:
         constexpr parser() = default;
 
-        // when dvision will be a thing, maybe the evaluation will need to return
-        // an expected in order to handle divison by 0... sqrt(-1)....
         constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str){
             using enum calc_err_type_t;
 

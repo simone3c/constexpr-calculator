@@ -26,7 +26,7 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<space>\\s+)|.+"
+#define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>/)|(?<space>\\s+)|.+"
 
 namespace ev{
 namespace{
@@ -40,6 +40,8 @@ namespace{
             CLOSED_PAR,
             PLUS,
             MINUS,
+            ASTERISK,
+            SLASH,
         };
 
         struct token{
@@ -89,6 +91,12 @@ namespace{
                 }
                 else if(r.get<"minus">()){
                     t.type = TOKEN_TYPE::MINUS;
+                }
+                else if(r.get<"asterisk">()){
+                    t.type = TOKEN_TYPE::ASTERISK;
+                }
+                else if(r.get<"slash">()){
+                    t.type = TOKEN_TYPE::SLASH;
                 }
                 else if(r.get<"space">()){
                     continue;

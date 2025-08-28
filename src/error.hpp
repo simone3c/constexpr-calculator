@@ -30,6 +30,7 @@ namespace ev{
         EXPECTED_TOKEN,
         UNEXPECTED_TOKEN,
         INVALID_EXPR,
+        DIVSION_BY_ZERO,
         NO_ERROR
     };
 
