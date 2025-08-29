@@ -8,12 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options("-Wextra;-Wall;-Wfloat-equal;-Wconversion;-Wshadow;-Wpointer-arith;-Wcast-align;-Wwrite-strings;")
 
 include_directories(src)
+include_directories(src/include)
 include_directories(external)
 
 add_library(calc INTERFACE)
-target_include_directories(calc INTERFACE src)
+target_include_directories(calc INTERFACE src/include)
 
-option(BUILD_TESTS "Build the unit tests" ON)
+option(BUILD_TESTS "Build the unit tests" OFF)
 if(BUILD_TESTS)
     include(FetchContent)
     FetchContent_Declare(

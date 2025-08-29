@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "calculator.hpp"
+#include "constexpr-calculator/calculator.hpp"
 
 TEST(calc_test, identity){
     static_assert(calc::evaluate<int>("1") == 1);

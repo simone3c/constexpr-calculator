@@ -55,7 +55,7 @@ int main(){
 }
 ```
 
-Errors can easily printed
+Errors can be easily printed
 ```c++
 #include <print>
 #include "calculator.hpp"
@@ -64,7 +64,7 @@ int main(){
     constexpr auto expr = "1+ error here"; 
     constexpr auto val = ev::evaluate<int>(expr);
 
-    static_assert(!val.has_value() == 2);
+    static_assert(!val.has_value());
 
     std::println("{}", val.error());
 }
