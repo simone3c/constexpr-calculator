@@ -28,7 +28,7 @@ jobs:
         sudo update-alternatives --config g++
 
     - name: cmake init
-      run: cmake -B build/ -S .
+      run: cmake -B build/ -S . -DBUILD_TESTS=ON
       
     - name: cmake build
       run: cmake --build build
