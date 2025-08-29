@@ -3,16 +3,17 @@ project(calc)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 add_compile_options("-Wextra;-Wall;-Wfloat-equal;-Wconversion;-Wshadow;-Wpointer-arith;-Wcast-align;-Wwrite-strings;")
 
-include_directories(src)
-include_directories(src/include)
-include_directories(external)
 
 add_library(calc INTERFACE)
-target_include_directories(calc INTERFACE src/include)
+target_include_directories(calc 
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/external  
+)
+target_compile_features(calc INTERFACE cxx_std_23)
 
 option(BUILD_TESTS "Build the unit tests" OFF)
 if(BUILD_TESTS)
