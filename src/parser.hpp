@@ -7,15 +7,10 @@
 #include <type_traits>
 #include <functional>
 #include <cmath>
+#include <functional>
 
 #include "tokenizer.hpp"
-
-// still good idea if exprssion will ever use complex numbers
-// template<typename evaluation_t>
-// concept Evaluatable = requires(evaluation_t node){
-//     {node.evaluate()} -> std::convertible_to<evaluation_t>; // change to a more appropriate type
-// };
-
+#include "math_utils.hpp"
 
 /*
     EXPR: MUL (('+' MUL_DIV)? | ('-' MUL_DIV)?)
@@ -25,7 +20,7 @@
     LIT: int // double
 */
 
-namespace ev{
+namespace calc{
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
@@ -46,116 +41,79 @@ namespace {
 
     template<typename eval_t>
     requires std::is_arithmetic<eval_t>::value
-    struct mult : expr<eval_t>{
-        expr_ptr_t<eval_t> l;
-        expr_ptr_t<eval_t> r;
+    struct binary_op : expr<eval_t>{
+        using fun_t = ret_val_t<eval_t> (*)(eval_t, eval_t);
 
-        constexpr mult(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
-            l(std::move(l2)), 
-            r(std::move(r2))
-        {}
+        expr_ptr_t<eval_t> op1;
+        expr_ptr_t<eval_t> op2;
+        fun_t fun;
 
         constexpr ret_val_t<eval_t> evaluate() const {
-            auto left = l->evaluate();
-            if(!left){
-                return left;
+            auto a = op1->evaluate();
+            if(!a){
+                return a;
             }
 
-            auto right = r->evaluate();
-            if(!right){
-                return right;
+            auto b = op2->evaluate();
+            if(!b){
+                return b;
             }
 
-            return *left * *right;
+            return fun(*a, *b);
         }
 
-        constexpr ~mult() = default;
-    };
+        static constexpr expr_ptr_t<eval_t> add(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+            return binary_op_with_fun(std::move(l), std::move(r), 
+                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                    return a + b;
+                }
+            );       
+        }
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct div : expr<eval_t>{
-        expr_ptr_t<eval_t> n;
-        expr_ptr_t<eval_t> d;
+        static constexpr expr_ptr_t<eval_t> sub(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+            return binary_op_with_fun(std::move(l), std::move(r), 
+                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                    return a - b;
+                }
+            );   
+        }
 
-        constexpr div(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
-            n(std::move(l2)), 
-            d(std::move(r2))
+        static constexpr expr_ptr_t<eval_t> mult(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+            return binary_op_with_fun(std::move(l), std::move(r), 
+                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                    return a * b;
+                }
+            );   
+        }
+
+        static constexpr expr_ptr_t<eval_t> div(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+            return binary_op_with_fun(std::move(l), std::move(r), 
+                [](eval_t n, eval_t d) constexpr -> ret_val_t<eval_t> {
+                    if(math_utils::is_zero(d)){
+                        return std::unexpected(
+                            calc_err::error_message(
+                                calc_err_type_t::DIVISION_BY_ZERO, 
+                                "Division by 0 detected"
+                            )
+                        );
+                    }
+
+                    return n / d;
+                }
+            );   
+        }
+
+    private:
+        static constexpr expr_ptr_t<eval_t> binary_op_with_fun(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r, fun_t f){
+            return std::unique_ptr<binary_op<eval_t>>(new binary_op<eval_t>(std::move(l), std::move(r), f));
+        }
+
+        constexpr binary_op(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r, fun_t f) noexcept:
+            op1(std::move(l)), 
+            op2(std::move(r)),
+            fun(f)
         {}
 
-        constexpr ret_val_t<eval_t> evaluate() const {
-            auto denom = d->evaluate();
-            if(!denom){
-                return denom;
-            }
-            if(std::fabs(*denom) < 1e-6){
-                return std::unexpected(
-                    ev::calc_err::error_message(
-                        ev::calc_err_type_t::DIVISION_BY_ZERO, 
-                        "Division by 0 detected"
-                    )
-                );
-            }
-            return *n->evaluate() / *denom;
-        }
-
-        constexpr ~div() = default;
-    };
-
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct add : expr<eval_t>{
-        expr_ptr_t<eval_t> l;
-        expr_ptr_t<eval_t> r;
-
-        constexpr add(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
-            l(std::move(l2)), 
-            r(std::move(r2))
-        {}
-
-        constexpr ret_val_t<eval_t> evaluate() const {
-            auto left = l->evaluate();
-            if(!left){
-                return left;
-            }
-
-            auto right = r->evaluate();
-            if(!right){
-                return right;
-            }
-
-            return *left + *right;
-        }
-
-        constexpr ~add() = default;
-    };
-
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct sub : expr<eval_t>{
-        expr_ptr_t<eval_t> l;
-        expr_ptr_t<eval_t> r;
-
-        constexpr sub(expr_ptr_t<eval_t>&& l2, expr_ptr_t<eval_t>&& r2) noexcept: 
-            l(std::move(l2)), 
-            r(std::move(r2))
-        {}
-
-        constexpr ret_val_t<eval_t> evaluate() const {
-            auto left = l->evaluate();
-            if(!left){
-                return left;
-            }
-
-            auto right = r->evaluate();
-            if(!right){
-                return right;
-            }
-
-            return *left - *right;
-        }
-
-        constexpr ~sub() = default;
     };
 
     template<typename eval_t>
@@ -281,16 +239,16 @@ namespace {
                 }
 
                 if(next->type == tokenizer::TOKEN_TYPE::PLUS){
-                    next_expr = std::make_unique<add<eval_t>>(
+                    next_expr = binary_op<eval_t>::add(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
-                    );
+                    );    
                 }
                 else{
-                    next_expr = std::make_unique<sub<eval_t>>(
+                    next_expr = binary_op<eval_t>::sub(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
-                    );
+                    );  
                 }
             }
 
@@ -313,16 +271,16 @@ namespace {
                 }
 
                 if(next->type == tokenizer::TOKEN_TYPE::ASTERISK){
-                    next_expr = std::make_unique<mult<eval_t>>(
+                    next_expr = binary_op<eval_t>::mult(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
-                    );
+                    ); 
                 }
                 else{
-                    next_expr = std::make_unique<div<eval_t>>(
+                    next_expr = binary_op<eval_t>::div(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
-                    );
+                    ); 
                 }
             }
 
@@ -454,11 +412,6 @@ namespace {
     };
 }
 
-    template<typename eval_t>
-    constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str)
-    requires std::is_arithmetic<eval_t>::value{
-        return parser<eval_t>().evaluate(str);
-    }
 }
 
 #endif

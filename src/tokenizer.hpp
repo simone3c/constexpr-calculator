@@ -3,7 +3,7 @@
 
 #include <string>
 #include <string_view>
-#include <vector>
+#include <list>
 #include <print>
 #include <algorithm>
 #include <cctype>
@@ -28,11 +28,11 @@ using std::print;
 
 #define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<space>\\s+)|.+"
 
-namespace ev{
+namespace calc{
 namespace{
 
     struct tokenizer{
-        using enum ev::calc_err_type_t;
+        using enum calc::calc_err_type_t;
 
         enum class TOKEN_TYPE{
             LIT,
@@ -51,12 +51,13 @@ namespace{
             size_t end;
         };
 
+        //std::list<token> tokens since c++26 when std::list will be constexpr
         std::vector<token> tokens;
         std::string str;
 
         constexpr tokenizer() = default;
 
-        constexpr calc_err tokenize(std::string_view input){
+        [[nodiscard]] constexpr calc_err tokenize(std::string_view input){
 
             tokens.clear();
             str.clear();
@@ -140,6 +141,7 @@ namespace{
             auto ret = peek();
             if(ret){
                 tokens.erase(tokens.begin());
+                // tokens.pop_front() since c++26 when std::list will be constexpr
             }
 
             return ret;

@@ -10,7 +10,8 @@ add_compile_options("-Wextra;-Wall;-Wfloat-equal;-Wconversion;-Wshadow;-Wpointer
 include_directories(src)
 include_directories(external)
 
-
+add_library(calc INTERFACE)
+target_include_directories(calc INTERFACE src)
 
 option(BUILD_TESTS "Build the unit tests" ON)
 if(BUILD_TESTS)
@@ -38,8 +39,3 @@ if(BUILD_TESTS)
     gtest_discover_tests(calc_test)
 endif()
 
-
-add_executable(
-  main
-  src/main.cpp
-)

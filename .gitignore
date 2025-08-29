@@ -1,6 +1,7 @@
 build/
 external/
 .vscode
+main.cpp
 
 *.s
 

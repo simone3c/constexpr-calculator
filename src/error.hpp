@@ -22,7 +22,7 @@ static constexpr void my_strncpy(char* dst, const char* src, ssize_t n){
     }
 }
 
-namespace ev{
+namespace calc{
     enum class calc_err_type_t{
         UNKNOWN_TOKEN,
         EMPTY_EXPRESSION,
@@ -112,7 +112,7 @@ namespace ev{
 }
 
 template <>
-struct std::formatter<ev::calc_err>{
+struct std::formatter<calc::calc_err>{
 
     constexpr auto parse(auto& ctx){
         auto it = ctx.begin();
@@ -123,7 +123,7 @@ struct std::formatter<ev::calc_err>{
         return it;
     }
     
-    auto format(ev::calc_err s, auto& ctx) const {
+    auto format(calc::calc_err s, auto& ctx) const {
         if(!s.get_start().has_value()){
             return std::format_to(
                 ctx.out(), 

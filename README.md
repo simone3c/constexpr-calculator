@@ -5,7 +5,15 @@ Constexpr-enabled interpreter of math expression developed in C++23
 - g++ 14.2 or newer
 - cmake 3.20 or newer
 
-# Build & Run
+# Build
+Your CMakeLists.txt should contain the following lines:
+```
+    add_subdirectory(path-to-constexpr-calculator) # external/.../constexpr-calculator
+
+    add_executable(MyApp my-files-to-build) # main.cpp file1.cpp ...
+    target_link_libraries(MyApp PRIVATE calc) # calc is the name of the library
+```
+
 ```bash
     # clone
     > git clone https://github.com/simone3c/constexpr-calculator.git --recurse-submodules
@@ -24,7 +32,7 @@ The evaluation can be performed at compile time
 ```c++
 // constexpr usage
 
-#include "parser.hpp"
+#include "calculator.hpp"
 
 int main(){
     constexpr auto expr = "1+1";
@@ -37,7 +45,7 @@ but also at runtime if needed
 ```c++
 // NON-contexpr usage
 
-#include "parser.hpp"
+#include "calculator.hpp"
 
 int main(){
     auto expr = user_input();
@@ -50,7 +58,7 @@ int main(){
 Errors can easily printed
 ```c++
 #include <print>
-#include "parser.hpp"
+#include "calculator.hpp"
 
 int main(){
     constexpr auto expr = "1+ error here"; 
