@@ -13,6 +13,7 @@ target_include_directories(calc
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/include
     INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/external  
 )
+
 target_compile_features(calc INTERFACE cxx_std_23)
 
 option(BUILD_TESTS "Build the unit tests" OFF)
@@ -36,7 +37,9 @@ if(BUILD_TESTS)
     target_link_libraries(
         calc_test
         GTest::gtest_main
+        calc
     )
+
     include(GoogleTest)
     gtest_discover_tests(calc_test)
 endif()
