@@ -62,7 +62,10 @@ namespace {
             return fun(*a, *b);
         }
 
-        static constexpr expr_ptr_t<num_t> add(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
+        static constexpr expr_ptr_t<num_t> add(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r
+        ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a + b;
@@ -70,7 +73,10 @@ namespace {
             );       
         }
 
-        static constexpr expr_ptr_t<num_t> sub(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
+        static constexpr expr_ptr_t<num_t> sub(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r
+        ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a - b;
@@ -78,7 +84,10 @@ namespace {
             );   
         }
 
-        static constexpr expr_ptr_t<num_t> mult(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
+        static constexpr expr_ptr_t<num_t> mult(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r
+        ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a * b;
@@ -86,7 +95,10 @@ namespace {
             );   
         }
 
-        static constexpr expr_ptr_t<num_t> div(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
+        static constexpr expr_ptr_t<num_t> div(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r
+        ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t n, num_t d) constexpr -> evaluation_t<num_t> {
                     if(math_utils::is_zero(d)){
@@ -104,11 +116,25 @@ namespace {
         }
 
     private:
-        static constexpr expr_ptr_t<num_t> binary_op_with_fun(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r, fun_t f){
-            return std::unique_ptr<binary_op<num_t>>(new binary_op<num_t>(std::move(l), std::move(r), f));
+        static constexpr expr_ptr_t<num_t> binary_op_with_fun(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r, 
+            fun_t f
+        ){
+            return std::unique_ptr<binary_op<num_t>>(
+                new binary_op<num_t>(
+                    std::move(l), 
+                    std::move(r), 
+                    f
+                )
+            );
         }
 
-        constexpr binary_op(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r, fun_t f) noexcept:
+        constexpr binary_op(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r, 
+            fun_t f
+        ) noexcept:
             op1(std::move(l)), 
             op2(std::move(r)),
             fun(f)
@@ -143,8 +169,16 @@ namespace {
         }
 
     private:
-        static constexpr expr_ptr_t<num_t> unary_op_with_fun(expr_ptr_t<num_t>&& ptr, fun_t f){
-            return std::unique_ptr<unary_op<num_t>>(new unary_op(std::move(ptr), f));
+        static constexpr expr_ptr_t<num_t> unary_op_with_fun(
+            expr_ptr_t<num_t>&& ptr, 
+            fun_t f
+        ){
+            return std::unique_ptr<unary_op<num_t>>(
+                new unary_op(
+                    std::move(ptr), 
+                    f
+                )
+            );
         }
 
         explicit constexpr unary_op(expr_ptr_t<num_t>&& ptr, fun_t f) noexcept: 
@@ -241,7 +275,9 @@ namespace {
                 return next_expr;
             }
             
-            while(t.match(tokenizer::TOKEN_TYPE::PLUS) || t.match(tokenizer::TOKEN_TYPE::MINUS)){
+            while(t.match(tokenizer::TOKEN_TYPE::PLUS) || 
+                t.match(tokenizer::TOKEN_TYPE::MINUS)
+            ){
                 auto next = t.next();
 
                 auto next_expr_2 = parse_mul_div();
@@ -273,7 +309,9 @@ namespace {
                 return next_expr;
             }
             
-            while(t.match(tokenizer::TOKEN_TYPE::ASTERISK) || t.match(tokenizer::TOKEN_TYPE::SLASH)){
+            while(t.match(tokenizer::TOKEN_TYPE::ASTERISK) || 
+                t.match(tokenizer::TOKEN_TYPE::SLASH)
+            ){
                 auto next = t.next();
 
                 auto next_expr_2 = parse_atom();
