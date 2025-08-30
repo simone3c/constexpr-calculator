@@ -26,7 +26,7 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<space>\\s+)|.+"
+#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<space>\\s+)|.+"
 
 namespace calc{
 namespace{

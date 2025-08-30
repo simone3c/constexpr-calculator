@@ -71,7 +71,6 @@ int main(){
 ```
 
 # TODO
-- literal with decimal notation
 - math functions
 - exponent
 - definite intgrals

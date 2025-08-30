@@ -10,6 +10,17 @@ TEST(calc_test, identity){
     static_assert(calc::evaluate<int>("(((1)))") == 1);
     static_assert(calc::evaluate<int>("-(((1)))") == -1);
     static_assert(calc::evaluate<int>("-((-(1)))") == 1);
+    static_assert(calc::evaluate<int>("1.5") == 1);
+    static_assert(calc::evaluate<int>("-.5") == 0);
+    static_assert(calc::evaluate<int>("10.0") == 10);
+    static_assert(calc::evaluate<int>("0.0") == 0);
+    static_assert(calc::evaluate<int>(".25") == 0);
+    static_assert(calc::evaluate<double>("1.5") == 1.5);
+    static_assert(calc::evaluate<double>(".5") == 0.5);
+    static_assert(calc::evaluate<double>("10.0") == 10.0);
+    static_assert(calc::evaluate<double>("0.0") == 0.0);
+    static_assert(calc::evaluate<double>("-.25") == -0.25);
+
 }
 
 TEST(calc_test, sum){

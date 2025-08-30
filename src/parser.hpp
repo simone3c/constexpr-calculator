@@ -432,30 +432,36 @@ namespace {
         constexpr std::optional<num_t> lit_convert(std::string_view n){
             num_t ret = 0;
             size_t i = 0;
-            bool neg = false;
 
             if(n.size() == 0){
                 return std::nullopt;
             }
-            
-            if(n[0] == '-'){
-                if(n.size() == 1){
-                    return std::nullopt;
-                }
-                neg = true;
-                i = 1;
-            }
-            
-            while(i < n.size()){
-                if(!(n[i] >= '0' && n[i] <= '9'))
+
+            auto decimal_point = std::find(std::begin(n), std::end(n), '.');
+
+            for(auto ptr = std::begin(n); ptr != decimal_point; ++ptr){
+                if(!(*ptr >= '0' && *ptr <= '9'))
                     return std::nullopt;
 
                 ret *= 10;
-                ret += (n[i] - '0');
+                ret += (*ptr - '0');
                 ++i;
             }
 
-            return neg ? -ret : ret;
+            if(!std::is_floating_point<num_t>::value || decimal_point == std::end(n)){
+                return ret;
+            }
+
+            num_t div = 10;
+            while(++decimal_point != std::end(n)){
+                if(!(*decimal_point >= '0' && *decimal_point <= '9'))
+                    return std::nullopt;
+
+                ret += (*decimal_point - '0') / div;
+                div *= 10;
+            }
+
+            return ret;
         }
 
     };
