@@ -14,10 +14,12 @@
 
 /*
     EXPR: MUL (('+' MUL_DIV)? | ('-' MUL_DIV)?)
-    MUL_DIV: ATOM (('*' ATOM)? | ('/' ATOM)?)
-    ATOM: '-'? POS_ATOM
-    POS_ATOM: LIT | '(' EXPR ')' // '^', SIN, LOG, ...
-    LIT: int // double
+    MUL_DIV: SIGN (('*' SIGN)? | ('/' SIGN)?)
+    '^' ...
+    SIGN: '-'? FACTORIAL
+    FACTORIAL: ATOM '!'?
+    ATOM: LIT | '(' EXPR ')' // SIN, LOG, ...
+    LIT: int | double
 */
 
 namespace calc{
@@ -168,6 +170,41 @@ namespace {
             );
         }
 
+        static constexpr expr_ptr_t<num_t> factorial(expr_ptr_t<num_t>&& data){
+            using enum calc_err_type_t;
+            return unary_op_with_fun(
+                std::move(data), 
+                [](num_t n) constexpr -> evaluation_t<num_t>{
+
+                    if(std::is_floating_point<num_t>::value){
+                        return std::unexpected(
+                            calc_err::error_message(
+                                calc_err_type_t::UNEXPECTED_VALUE, 
+                                "Factorial can't be applied to a non-interger value"
+                            )
+                        );
+                    }
+
+                    if(n < math_utils::zero_element<num_t>()){
+                        return std::unexpected(
+                            calc_err::error_message(
+                                calc_err_type_t::UNEXPECTED_VALUE, 
+                                "Factorial can't be applied to a negative value"
+                            )
+                        );
+                    }
+
+                    num_t ret = 1;
+                    while(n > 1){
+                        ret *= n;
+                        --n;
+                    }
+
+                    return ret;
+                }
+            );
+        }
+
     private:
         static constexpr expr_ptr_t<num_t> unary_op_with_fun(
             expr_ptr_t<num_t>&& ptr, 
@@ -304,7 +341,7 @@ namespace {
 
         constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_mul_div(){
 
-            auto next_expr = parse_atom();
+            auto next_expr = parse_sign();
             if(!next_expr){
                 return next_expr;
             }
@@ -314,7 +351,7 @@ namespace {
             ){
                 auto next = t.next();
 
-                auto next_expr_2 = parse_atom();
+                auto next_expr_2 = parse_sign();
                 if(!next_expr_2){
                     return next_expr_2;
                 }
@@ -336,6 +373,38 @@ namespace {
             return next_expr;
         }
 
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_sign(){
+
+            bool is_pos = true;
+
+            if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
+                is_pos = false;
+                t.next();
+            }
+            
+            auto next_expr = parse_factorial();
+            if(!next_expr || is_pos){
+                return next_expr;
+            }
+            
+            return unary_op<num_t>::neg(std::move(*next_expr));
+        }
+        
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_factorial(){
+            
+            auto next_expr = parse_atom();
+            if(!next_expr){
+                return next_expr;
+            }
+
+            if(t.match(tokenizer::TOKEN_TYPE::FACTORIAL)){
+                t.next();
+                return unary_op<num_t>::factorial(std::move(*next_expr));
+            }
+            
+            return next_expr;
+        }
+
         constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_atom(){
             using enum calc_err_type_t;
 
@@ -344,7 +413,7 @@ namespace {
 
             auto tok = t.next();
 
-            if(!tok.has_value()){
+            if(!tok){
                 return std::unexpected(
                     calc_err::error_with_wrong_token(
                         EXPECTED_TOKEN, 
@@ -376,26 +445,6 @@ namespace {
                 }
                 break;
 
-            case tokenizer::TOKEN_TYPE::MINUS:
-                if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
-                    return std::unexpected(
-                        calc_err::error_with_wrong_token(
-                            UNEXPECTED_TOKEN, 
-                            "Unexpected '-' after another '-' symbol", 
-                            expr, 
-                            tok->start, 
-                            tok->end
-                        )
-                    );
-                }
-
-                tmp = parse_atom();
-                if(!tmp){
-                    return tmp;
-                }
-                tmp = unary_op<num_t>::neg(std::move(*tmp));
-                break;
-
             case tokenizer::TOKEN_TYPE::LIT:
                 lit_val = lit_convert(tok->val);
                 if(!lit_val){
@@ -409,7 +458,9 @@ namespace {
                         )
                     );
                 }
+
                 tmp = std::make_unique<lit<num_t>>(*lit_val); 
+                
                 break;
 
             // sin, cos, ...

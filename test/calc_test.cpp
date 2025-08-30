@@ -5,8 +5,8 @@
 TEST(calc_test, identity){
     static_assert(calc::evaluate<int>("1") == 1);
     static_assert(calc::evaluate<int>("-1") == -1);
-    static_assert(calc::evaluate<int>("(1)") == 1);
-    static_assert(calc::evaluate<int>("(-1)") == -1);
+    static_assert(calc::evaluate<double>("(1)") == 1.);
+    static_assert(calc::evaluate<double>("(-1)") == -1.);
     static_assert(calc::evaluate<int>("(((1)))") == 1);
     static_assert(calc::evaluate<int>("-(((1)))") == -1);
     static_assert(calc::evaluate<int>("-((-(1)))") == 1);
@@ -85,10 +85,24 @@ TEST(calc_test, basic_operands_not_truncated){
     static_assert(calc::math_utils::equal(*calc::evaluate<double>("(((((2 + 2) * 2) + 4) / 2) - 1) * 3"), 15.0));
 }
 
+TEST(calc_test, factorial){
+    static_assert(calc::evaluate<int>("(5 + 3)! / 2!") == 20160);
+    static_assert(calc::evaluate<int>("(4 * 3)! / (2 * 3)!" ) == 665280);
+    static_assert(calc::evaluate<int>("(5 + 3) * 2!") == 16);
+    static_assert(calc::evaluate<int>("(3! + 2!) * 2!") == 16);
+    static_assert(calc::evaluate<int>("(6 / 3)! * 2!") == 4);
+    static_assert(calc::evaluate<int>("(5 * 2)! / (3! * 2!)") == 302400);
+    static_assert(calc::evaluate<int>("(4! / 2!) * 3!") == 72);
+    static_assert(calc::evaluate<int>("(5! / 2!) * 3!") == 360);
+    static_assert(calc::evaluate<int>("(5 + 3) * (2! / 1!)") == 16);
+    static_assert(calc::evaluate<int>("(6 + 2) * (3! / 2!)") == 24);
+}
+
 TEST(calc_test, errors){
     using enum calc::calc_err_type_t;
     static_assert(calc::evaluate<int>("1 + 1p").error().get_err_type() == UNKNOWN_TOKEN);
     static_assert(calc::evaluate<int>("10 / 0").error().get_err_type() == DIVISION_BY_ZERO);
     static_assert(calc::evaluate<int>("10 / (1-1)").error().get_err_type() == DIVISION_BY_ZERO);
-    static_assert(calc::evaluate<int>("10 / (0 / 1)").error().get_err_type() == DIVISION_BY_ZERO);
+    static_assert(calc::evaluate<int>("(-1)!").error().get_err_type() == UNEXPECTED_VALUE);
+    static_assert(calc::evaluate<double>("1.5!").error().get_err_type() == UNEXPECTED_VALUE);
 }

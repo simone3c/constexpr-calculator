@@ -26,7 +26,7 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<space>\\s+)|.+"
+#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<factorial>!)|(?<space>\\s+)|.+"
 
 namespace calc{
 namespace{
@@ -42,6 +42,7 @@ namespace{
             MINUS,
             ASTERISK,
             SLASH,
+            FACTORIAL,
         };
 
         struct token{
@@ -102,6 +103,9 @@ namespace{
                 }
                 else if(r.get<"slash">()){
                     t.type = TOKEN_TYPE::SLASH;
+                }
+                else if(r.get<"factorial">()){
+                    t.type = TOKEN_TYPE::FACTORIAL;
                 }
                 else if(r.get<"space">()){
                     continue;
