@@ -7,7 +7,7 @@
 
 namespace calc{
 namespace math_utils{
-    static constexpr double epsilon = 1.e-6;
+    static constexpr double epsilon = 1.e-12;
 
     // struct complex{
     //     double real;

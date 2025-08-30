@@ -22,33 +22,33 @@
 
 namespace calc{
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    using ret_val_t = std::expected<eval_t, calc_err>;
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
+    using evaluation_t = std::expected<num_t, calc_err>;
 
 namespace {
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
     struct expr{
-        constexpr virtual ret_val_t<eval_t> evaluate() const = 0;
+        constexpr virtual evaluation_t<num_t> evaluate() const = 0;
         constexpr virtual ~expr() = default;
     };
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    using expr_ptr_t = std::unique_ptr<expr<eval_t>>;
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
+    using expr_ptr_t = std::unique_ptr<expr<num_t>>;
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct binary_op : expr<eval_t>{
-        using fun_t = ret_val_t<eval_t> (*)(eval_t, eval_t);
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
+    struct binary_op : expr<num_t>{
+        using fun_t = evaluation_t<num_t>(*)(num_t, num_t);
 
-        expr_ptr_t<eval_t> op1;
-        expr_ptr_t<eval_t> op2;
+        expr_ptr_t<num_t> op1;
+        expr_ptr_t<num_t> op2;
         fun_t fun;
 
-        constexpr ret_val_t<eval_t> evaluate() const {
+        constexpr evaluation_t<num_t> evaluate() const {
             auto a = op1->evaluate();
             if(!a){
                 return a;
@@ -62,33 +62,33 @@ namespace {
             return fun(*a, *b);
         }
 
-        static constexpr expr_ptr_t<eval_t> add(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+        static constexpr expr_ptr_t<num_t> add(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
             return binary_op_with_fun(std::move(l), std::move(r), 
-                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a + b;
                 }
             );       
         }
 
-        static constexpr expr_ptr_t<eval_t> sub(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+        static constexpr expr_ptr_t<num_t> sub(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
             return binary_op_with_fun(std::move(l), std::move(r), 
-                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a - b;
                 }
             );   
         }
 
-        static constexpr expr_ptr_t<eval_t> mult(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+        static constexpr expr_ptr_t<num_t> mult(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
             return binary_op_with_fun(std::move(l), std::move(r), 
-                [](eval_t a, eval_t b) constexpr -> ret_val_t<eval_t> {
+                [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
                     return a * b;
                 }
             );   
         }
 
-        static constexpr expr_ptr_t<eval_t> div(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r){
+        static constexpr expr_ptr_t<num_t> div(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r){
             return binary_op_with_fun(std::move(l), std::move(r), 
-                [](eval_t n, eval_t d) constexpr -> ret_val_t<eval_t> {
+                [](num_t n, num_t d) constexpr -> evaluation_t<num_t> {
                     if(math_utils::is_zero(d)){
                         return std::unexpected(
                             calc_err::error_message(
@@ -104,11 +104,11 @@ namespace {
         }
 
     private:
-        static constexpr expr_ptr_t<eval_t> binary_op_with_fun(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r, fun_t f){
-            return std::unique_ptr<binary_op<eval_t>>(new binary_op<eval_t>(std::move(l), std::move(r), f));
+        static constexpr expr_ptr_t<num_t> binary_op_with_fun(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r, fun_t f){
+            return std::unique_ptr<binary_op<num_t>>(new binary_op<num_t>(std::move(l), std::move(r), f));
         }
 
-        constexpr binary_op(expr_ptr_t<eval_t>&& l, expr_ptr_t<eval_t>&& r, fun_t f) noexcept:
+        constexpr binary_op(expr_ptr_t<num_t>&& l, expr_ptr_t<num_t>&& r, fun_t f) noexcept:
             op1(std::move(l)), 
             op2(std::move(r)),
             fun(f)
@@ -116,57 +116,68 @@ namespace {
 
     };
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct atom : expr<eval_t>{
-        expr_ptr_t<eval_t> data;
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
+    struct unary_op : expr<num_t>{
+        using fun_t = evaluation_t<num_t>(*)(num_t);
+        
+        expr_ptr_t<num_t> data;
+        fun_t fun;
 
-        explicit constexpr atom(expr_ptr_t<eval_t>&& ptr) noexcept: 
-            data(std::move(ptr))
-        {}
-    };
-
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct unary_minus : atom<eval_t>{
-        explicit constexpr unary_minus(expr_ptr_t<eval_t>&& next) noexcept: 
-            atom<eval_t>::atom(std::move(next))
-        {}
-
-        constexpr ret_val_t<eval_t> evaluate() const {
-            auto val = atom<eval_t>::data->evaluate();
-            if(!val){
-                return val;
+        constexpr evaluation_t<num_t> evaluate() const{
+            auto ret = data->evaluate();
+            if(!ret){
+                return ret;
             }
-            return -*val;
-        };
+
+            return fun(*ret);
+        }
+        
+        static constexpr expr_ptr_t<num_t> neg(expr_ptr_t<num_t>&& data){
+            return unary_op_with_fun(
+                std::move(data), 
+                [](num_t n) constexpr -> evaluation_t<num_t>{
+                    return -n;
+                }
+            );
+        }
+
+    private:
+        static constexpr expr_ptr_t<num_t> unary_op_with_fun(expr_ptr_t<num_t>&& ptr, fun_t f){
+            return std::unique_ptr<unary_op<num_t>>(new unary_op(std::move(ptr), f));
+        }
+
+        explicit constexpr unary_op(expr_ptr_t<num_t>&& ptr, fun_t f) noexcept: 
+            data(std::move(ptr)),
+            fun(f)
+        {}
     };
 
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
-    struct lit : expr<eval_t>{
-        eval_t value;
-        explicit constexpr lit(eval_t v) noexcept: 
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
+    struct lit : expr<num_t>{
+        num_t value;
+        explicit constexpr lit(num_t v) noexcept: 
             value(v)
         {}
 
-        constexpr ret_val_t<eval_t> evaluate() const {
+        constexpr evaluation_t<num_t> evaluate() const {
             return value;
         }
     };
     
-    template<typename eval_t>
-    requires std::is_arithmetic<eval_t>::value
+    template<typename num_t>
+    requires std::is_arithmetic<num_t>::value
     class parser{
         
-        expr_ptr_t<eval_t> root;
+        expr_ptr_t<num_t> root;
         tokenizer t;
         std::string expr;
 
     public:
         constexpr parser() = default;
 
-        constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str){
+        constexpr std::expected<num_t, calc_err> evaluate(std::string_view str){
             using enum calc_err_type_t;
 
             calc_err err = parse(str);
@@ -223,7 +234,7 @@ namespace {
             return calc_err::no_error();
         }
 
-        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_exp(){
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_exp(){
 
             auto next_expr = parse_mul_div();
             if(!next_expr){
@@ -239,13 +250,13 @@ namespace {
                 }
 
                 if(next->type == tokenizer::TOKEN_TYPE::PLUS){
-                    next_expr = binary_op<eval_t>::add(
+                    next_expr = binary_op<num_t>::add(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     );    
                 }
                 else{
-                    next_expr = binary_op<eval_t>::sub(
+                    next_expr = binary_op<num_t>::sub(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     );  
@@ -255,7 +266,7 @@ namespace {
             return next_expr;
         }
 
-        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_mul_div(){
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_mul_div(){
 
             auto next_expr = parse_atom();
             if(!next_expr){
@@ -271,13 +282,13 @@ namespace {
                 }
 
                 if(next->type == tokenizer::TOKEN_TYPE::ASTERISK){
-                    next_expr = binary_op<eval_t>::mult(
+                    next_expr = binary_op<num_t>::mult(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     ); 
                 }
                 else{
-                    next_expr = binary_op<eval_t>::div(
+                    next_expr = binary_op<num_t>::div(
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     ); 
@@ -287,11 +298,11 @@ namespace {
             return next_expr;
         }
 
-        constexpr std::expected<expr_ptr_t<eval_t>, calc_err> parse_atom(){
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_atom(){
             using enum calc_err_type_t;
 
-            std::expected<expr_ptr_t<eval_t>, calc_err> tmp;
-            std::optional<eval_t> lit_val;
+            std::expected<expr_ptr_t<num_t>, calc_err> tmp;
+            std::optional<num_t> lit_val;
 
             auto tok = t.next();
 
@@ -344,7 +355,7 @@ namespace {
                 if(!tmp){
                     return tmp;
                 }
-                tmp = std::make_unique<unary_minus<eval_t>>(std::move(*tmp));
+                tmp = unary_op<num_t>::neg(std::move(*tmp));
                 break;
 
             case tokenizer::TOKEN_TYPE::LIT:
@@ -360,7 +371,7 @@ namespace {
                         )
                     );
                 }
-                tmp = std::make_unique<lit<eval_t>>(*lit_val); 
+                tmp = std::make_unique<lit<num_t>>(*lit_val); 
                 break;
 
             // sin, cos, ...
@@ -380,8 +391,8 @@ namespace {
             return tmp;
         }
 
-        constexpr std::optional<eval_t> lit_convert(std::string_view n){
-            eval_t ret = 0;
+        constexpr std::optional<num_t> lit_convert(std::string_view n){
+            num_t ret = 0;
             size_t i = 0;
             bool neg = false;
 

@@ -5,10 +5,10 @@
 
 namespace calc{
 
-    template<typename eval_t>
-    constexpr std::expected<eval_t, calc_err> evaluate(std::string_view str)
-    requires std::is_arithmetic<eval_t>::value{
-        return parser<eval_t>().evaluate(str);
+    template<typename num_t>
+    constexpr evaluation_t<num_t> evaluate(std::string_view str)
+    requires std::is_arithmetic<num_t>::value{
+        return parser<num_t>().evaluate(str);
     }
 }
 
