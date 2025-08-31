@@ -100,9 +100,12 @@ TEST(calc_test, factorial){
 
 TEST(calc_test, errors){
     using enum calc::calc_err_type_t;
+    static_assert(calc::evaluate<int>("").error().get_err_type() == EMPTY_EXPRESSION);
     static_assert(calc::evaluate<int>("1 + 1p").error().get_err_type() == UNKNOWN_TOKEN);
+    static_assert(calc::evaluate<int>("(3+4").error().get_err_type() == EXPECTED_TOKEN);
+    static_assert(calc::evaluate<int>("1+").error().get_err_type() == EXPECTED_TOKEN);
     static_assert(calc::evaluate<int>("10 / 0").error().get_err_type() == DIVISION_BY_ZERO);
     static_assert(calc::evaluate<int>("10 / (1-1)").error().get_err_type() == DIVISION_BY_ZERO);
     static_assert(calc::evaluate<int>("(-1)!").error().get_err_type() == UNEXPECTED_VALUE);
-    static_assert(calc::evaluate<double>("1.5!").error().get_err_type() == UNEXPECTED_VALUE);
+    static_assert(calc::evaluate<double>("1!").error().get_err_type() == UNEXPECTED_VALUE);
 }

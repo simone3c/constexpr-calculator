@@ -32,7 +32,6 @@ namespace calc{
         INVALID_EXPR,
         DIVISION_BY_ZERO,
         UNEXPECTED_VALUE,
-        NO_ERROR
     };
 
     class calc_err{
@@ -52,10 +51,6 @@ namespace calc{
             std::string_view msg
         ){
             return calc_err(type, msg, std::nullopt, std::nullopt, std::nullopt);
-        }
-        
-        static constexpr calc_err no_error(){
-            return calc_err(NO_ERROR, "No error", std::nullopt, std::nullopt, std::nullopt);
         }
 
         static constexpr calc_err error_with_wrong_token(

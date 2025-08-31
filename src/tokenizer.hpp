@@ -58,7 +58,7 @@ namespace{
 
         constexpr tokenizer() = default;
 
-        [[nodiscard]] constexpr calc_err tokenize(std::string_view input){
+        [[nodiscard]] constexpr std::optional<calc_err> tokenize(std::string_view input){
 
             tokens.clear();
             str.clear();
@@ -131,7 +131,7 @@ namespace{
 
             }
 
-            return calc_err::no_error();
+            return std::nullopt;
         }
 
         [[nodiscard]] constexpr std::optional<token> peek() const {

@@ -180,7 +180,7 @@ namespace {
                         return std::unexpected(
                             calc_err::error_message(
                                 calc_err_type_t::UNEXPECTED_VALUE, 
-                                "Factorial can't be applied to a non-interger value"
+                                "Factorial can't be applied to a non-integer value"
                             )
                         );
                     }
@@ -251,24 +251,18 @@ namespace {
         constexpr std::expected<num_t, calc_err> evaluate(std::string_view str){
             using enum calc_err_type_t;
 
-            calc_err err = parse(str);
-            if(err.get_err_type() != NO_ERROR){
-                return std::unexpected(err);
+            auto err = parse(str);
+            if(err){
+                return std::unexpected(*err);
             }
 
-            if(root == nullptr)
-                return std::unexpected(
-                    calc_err::error_message(
-                        INVALID_EXPR, 
-                        "Parsing failed"
-                    )
-                );
-
+            assert(root != nullptr);
+            
             return root->evaluate();
         }
 
     private:
-        constexpr calc_err parse(std::string_view input){
+        constexpr std::optional<calc_err> parse(std::string_view input){
             using enum calc_err_type_t;
 
             root.reset();
@@ -283,8 +277,8 @@ namespace {
             expr.erase(new_end, std::end(expr));
 
 
-            calc_err err = t.tokenize(expr);
-            if(err.get_err_type() != NO_ERROR)
+            auto err = t.tokenize(expr);
+            if(err)
                 return err;
 
             auto tmp = parse_exp();
@@ -302,7 +296,7 @@ namespace {
 
             root = std::move(*tmp);
 
-            return calc_err::no_error();
+            return std::nullopt;
         }
 
         constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_exp(){
