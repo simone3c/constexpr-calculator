@@ -71,6 +71,7 @@ int main(){
 ```
 
 # TODO
+- handle overlow and underflow
 - math functions
 - exponent
 - definite intgrals
