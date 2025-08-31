@@ -265,8 +265,23 @@ namespace {
         }
 
         constexpr std::optional<num_t> lit_convert(std::string_view n){
-            num_t ret = 0;
-            size_t i = 0;
+
+            // string to num_t
+            constexpr auto ston = 
+                [](auto start, const auto end) -> std::optional<num_t> {
+
+                    num_t ret = 0;
+                    while(start != end){
+                        if(!(*start >= '0' && *start <= '9'))
+                            return std::nullopt;
+
+                        ret *= 10;
+                        ret += (*start - '0');
+                        ++start;
+                    }
+
+                    return ret;
+                };
 
             if(n.size() == 0){
                 return std::nullopt;
@@ -274,29 +289,25 @@ namespace {
 
             auto decimal_point = std::find(std::begin(n), std::end(n), '.');
 
-            for(auto ptr = std::begin(n); ptr != decimal_point; ++ptr){
-                if(!(*ptr >= '0' && *ptr <= '9'))
-                    return std::nullopt;
+            auto numerator = ston(std::begin(n), decimal_point);
+            assert(numerator); // can't happen any error if tokenizer works
 
-                ret *= 10;
-                ret += (*ptr - '0');
-                ++i;
+
+            if(!std::is_floating_point<num_t>::value || 
+                decimal_point == std::end(n) // ok because regex doesnt allow for "4."
+            ){
+                return numerator;
             }
 
-            if(!std::is_floating_point<num_t>::value || decimal_point == std::end(n)){
-                return ret;
-            }
+            ++decimal_point; // go to the first decimal digit            
+            num_t div = static_cast<num_t>(
+                std::distance(decimal_point, std::end(n))
+            );
 
-            num_t div = 10;
-            while(++decimal_point != std::end(n)){
-                if(!(*decimal_point >= '0' && *decimal_point <= '9'))
-                    return std::nullopt;
+            auto denom = ston(decimal_point, std::end(n));
+            assert(denom);
 
-                ret += (*decimal_point - '0') / div;
-                div *= 10;
-            }
-
-            return ret;
+            return *numerator + *denom / std::pow(10, div);
         }
 
     };
