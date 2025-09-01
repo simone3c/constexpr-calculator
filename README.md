@@ -35,10 +35,10 @@ The evaluation can be performed at compile time
 #include "calculator.hpp"
 
 int main(){
-    constexpr auto expr = "1+1";
-    constexpr auto val = ev::evaluate<int>(expr);
+    constexpr auto expr = "1+1.5";
+    constexpr auto val = ev::evaluate(expr);
 
-    static_assert(val.value() == 2);
+    static_assert(val.value() == 2.5);
 }
 ```
 but also at runtime if needed
@@ -49,7 +49,7 @@ but also at runtime if needed
 
 int main(){
     auto expr = user_input();
-    auto val = ev::evaluate<int>(expr);
+    auto val = ev::evaluate(expr);
 
     assert(val.value() == 2);
 }
@@ -62,7 +62,7 @@ Errors can be easily printed
 
 int main(){
     constexpr auto expr = "1+ error here"; 
-    constexpr auto val = ev::evaluate<int>(expr);
+    constexpr auto val = ev::evaluate(expr);
 
     static_assert(!val.has_value());
 
