@@ -27,7 +27,7 @@ namespace calc{
 namespace {
     
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     class parser{
         
         expr_ptr_t<num_t> root;
@@ -78,9 +78,13 @@ namespace {
             }
 
             if(t.has_more_tokens()){
-                return calc_err::error_message(
+                auto tok = t.next();
+                return calc_err::error_with_wrong_token(
                     UNEXPECTED_TOKEN, 
-                    "Unexpected expression terminator found"
+                    "Unexpected token after end-of-expression",
+                    expr,
+                    tok->start,
+                    tok->end
                 );
             }
 
@@ -272,11 +276,23 @@ namespace {
 
                     num_t ret = 0;
                     while(start != end){
-                        if(!(*start >= '0' && *start <= '9'))
-                            return std::nullopt;
 
-                        ret *= 10;
-                        ret += (*start - '0');
+                        
+                        if(!(*start >= '0' && *start <= '9'))
+                        return std::nullopt;
+                        
+                        auto tmp = math_utils::safe_mult(ret, static_cast<num_t>(10));
+                        if(!tmp){
+                            return tmp;
+                        }
+                        ret = *tmp;
+
+                        tmp = math_utils::safe_add(ret, static_cast<num_t>(*start - '0'));
+                        if(!tmp){
+                            return tmp;
+                        }
+                        ret = *tmp;
+
                         ++start;
                     }
 
@@ -289,14 +305,20 @@ namespace {
 
             auto decimal_point = std::find(std::begin(n), std::end(n), '.');
 
-            auto numerator = ston(std::begin(n), decimal_point);
-            assert(numerator); // can't happen any error if tokenizer works
+            auto numerator_opt = ston(std::begin(n), decimal_point);
+            if(!numerator_opt){
+                return numerator_opt;
+            }
 
 
-            if(!std::is_floating_point<num_t>::value || 
-                decimal_point == std::end(n) // ok because regex doesnt allow for "4."
+            if(!std::is_floating_point<num_t>::value &&
+                decimal_point != std::end(n) // ok because regex doesnt allow for "4."
             ){
-                return numerator;
+                return std::nullopt;
+            }
+
+            if(decimal_point == std::end(n)){
+                return *numerator_opt;
             }
 
             ++decimal_point; // go to the first decimal digit            
@@ -304,10 +326,13 @@ namespace {
                 std::distance(decimal_point, std::end(n))
             );
 
-            auto denom = ston(decimal_point, std::end(n));
-            assert(denom);
+            auto denom_opt = ston(decimal_point, std::end(n));
+            if(!denom_opt){
+                return denom_opt;
+            }
 
-            return *numerator + *denom / std::pow(10, div);
+
+            return *numerator_opt + *denom_opt / std::pow(10., div);
         }
 
     };

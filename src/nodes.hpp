@@ -6,24 +6,24 @@
 namespace calc{
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     using evaluation_t = std::expected<num_t, calc_err>;
 
 namespace{
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     struct expr{
         constexpr virtual evaluation_t<num_t> evaluate() const = 0;
         constexpr virtual ~expr() = default;
     };
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     using expr_ptr_t = std::unique_ptr<expr<num_t>>;
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     struct binary_op : expr<num_t>{
         using fun_t = evaluation_t<num_t>(*)(num_t, num_t);
 
@@ -51,7 +51,17 @@ namespace{
         ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
-                    return a + b;
+                    auto ret = math_utils::safe_add(a, b);
+                    if(ret){
+                        return *ret;
+                    }
+
+                    return std::unexpected(
+                        calc_err::error_message(
+                            calc_err_type_t::OVERFLOW_UNDERFLOW, 
+                            "overflow/underflow detected"
+                        )
+                    );
                 }
             );       
         }
@@ -62,7 +72,17 @@ namespace{
         ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
-                    return a - b;
+                    auto ret = math_utils::safe_sub(a, b);
+                    if(ret){
+                        return *ret;
+                    }
+
+                    return std::unexpected(
+                        calc_err::error_message(
+                            calc_err_type_t::OVERFLOW_UNDERFLOW, 
+                            "overflow/underflow detected"
+                        )
+                    );
                 }
             );   
         }
@@ -73,7 +93,17 @@ namespace{
         ){
             return binary_op_with_fun(std::move(l), std::move(r), 
                 [](num_t a, num_t b) constexpr -> evaluation_t<num_t> {
-                    return a * b;
+                    auto ret = math_utils::safe_mult(a, b);
+                    if(ret){
+                        return *ret;
+                    }
+
+                    return std::unexpected(
+                        calc_err::error_message(
+                            calc_err_type_t::OVERFLOW_UNDERFLOW, 
+                            "overflow/underflow detected"
+                        )
+                    );
                 }
             );   
         }
@@ -126,7 +156,7 @@ namespace{
     };
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     struct unary_op : expr<num_t>{
         using fun_t = evaluation_t<num_t>(*)(num_t);
         
@@ -206,7 +236,7 @@ namespace{
     };
 
     template<typename num_t>
-    requires std::is_arithmetic<num_t>::value
+    requires std::is_signed<num_t>::value
     struct lit : expr<num_t>{
         num_t value;
         explicit constexpr lit(num_t v) noexcept: 

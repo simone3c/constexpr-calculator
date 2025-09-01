@@ -10,11 +10,6 @@ TEST(calc_test, identity){
     static_assert(calc::evaluate<int>("(((1)))") == 1);
     static_assert(calc::evaluate<int>("-(((1)))") == -1);
     static_assert(calc::evaluate<int>("-((-(1)))") == 1);
-    static_assert(calc::evaluate<int>("1.5") == 1);
-    static_assert(calc::evaluate<int>("-.5") == 0);
-    static_assert(calc::evaluate<int>("10.0") == 10);
-    static_assert(calc::evaluate<int>("0.0") == 0);
-    static_assert(calc::evaluate<int>(".25") == 0);
     static_assert(calc::evaluate<double>("1.5") == 1.5);
     static_assert(calc::evaluate<double>(".5") == 0.5);
     static_assert(calc::evaluate<double>("10.0") == 10.0);
@@ -98,14 +93,46 @@ TEST(calc_test, factorial){
     static_assert(calc::evaluate<int>("(6 + 2) * (3! / 2!)") == 24);
 }
 
-TEST(calc_test, errors){
+TEST(calc_test, syntax_errors){
     using enum calc::calc_err_type_t;
+
     static_assert(calc::evaluate<int>("").error().get_err_type() == EMPTY_EXPRESSION);
+
     static_assert(calc::evaluate<int>("1 + 1p").error().get_err_type() == UNKNOWN_TOKEN);
+
     static_assert(calc::evaluate<int>("(3+4").error().get_err_type() == EXPECTED_TOKEN);
     static_assert(calc::evaluate<int>("1+").error().get_err_type() == EXPECTED_TOKEN);
+    static_assert(calc::evaluate<int>("1 1+1").error().get_err_type() == UNEXPECTED_TOKEN);
+
     static_assert(calc::evaluate<int>("10 / 0").error().get_err_type() == DIVISION_BY_ZERO);
     static_assert(calc::evaluate<int>("10 / (1-1)").error().get_err_type() == DIVISION_BY_ZERO);
+
     static_assert(calc::evaluate<int>("(-1)!").error().get_err_type() == UNEXPECTED_VALUE);
     static_assert(calc::evaluate<double>("1!").error().get_err_type() == UNEXPECTED_VALUE);
+}
+
+
+TEST(calc_test, literal_errors){    
+    using enum calc::calc_err_type_t;
+
+    static_assert(calc::evaluate<int8_t>("1000").error().get_err_type() == INVALID_LITERAL);
+    static_assert(calc::evaluate<int>("1000.0").error().get_err_type() == INVALID_LITERAL);
+    static_assert(calc::evaluate<int>("1.5").error().get_err_type() == INVALID_LITERAL);
+    static_assert(calc::evaluate<int>("-.5").error().get_err_type() == INVALID_LITERAL);
+    static_assert(calc::evaluate<int>("10.0").error().get_err_type() == INVALID_LITERAL);
+    static_assert(calc::evaluate<int>(".25").error().get_err_type() == INVALID_LITERAL);
+
+}
+
+TEST(calc_test, evaluation_errors){
+    using enum calc::calc_err_type_t;
+
+    static_assert(calc::evaluate<int8_t>("100 + 100").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("-100 + -100").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("-100 - 100").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("100 - -100").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("100 * 2").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("100 * -2").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("-100 * 2").error().get_err_type() == OVERFLOW_UNDERFLOW);
+    static_assert(calc::evaluate<int8_t>("-100 * -2").error().get_err_type() == OVERFLOW_UNDERFLOW);
 }

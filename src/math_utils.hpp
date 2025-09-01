@@ -2,6 +2,7 @@
 #define _MY_MATH_UTILS_
 
 #include <concepts>
+#include <limits>
 
 // useful when complex numbers will be a thing
 
@@ -22,24 +23,78 @@ namespace math_utils{
     // };
     
     template<typename T>
-    requires std::is_arithmetic<T>::value
+    requires std::is_signed<T>::value
     constexpr T  zero_element(){
         return static_cast<T>(0);
     };
     
     template<std::integral T>
-    constexpr bool equal(const T& v1, const T& v2){
+    constexpr bool equal(T v1, T v2){
         return v1 == v2;
     }
 
     template<std::floating_point T>
-    constexpr bool equal(const T& v1, const T& v2){
+    constexpr bool equal(T v1, T v2){
         return std::fabs(v1 - v2) < epsilon;
     }
 
     template<typename T>
-    constexpr bool is_zero(const T& v1){
+    requires std::is_signed<T>::value
+    constexpr bool is_zero(T v1){
         return equal(v1, zero_element<T>());
+    }
+
+    template<typename T>
+    requires std::is_signed<T>::value
+    constexpr std::optional<T> safe_add(T l, T r){
+        if(r > 0 && l > std::numeric_limits<T>::max() - r){
+            return std::nullopt;
+        }
+
+        if(r < 0 && l < std::numeric_limits<T>::min() - r){
+            return std::nullopt;
+        }
+
+        return l + r;
+    }
+
+    template<typename T>
+    requires std::is_signed<T>::value
+    constexpr std::optional<T> safe_sub(T l, T r){
+
+        return safe_add(l, static_cast<T>(-r));
+        
+        if(r > 0 && l < std::numeric_limits<T>::min() + r){
+            return std::nullopt;
+        }
+
+        if(r < 0 && l > std::numeric_limits<T>::max() + r){
+            return std::nullopt;
+        }
+
+        return l - r;
+    }
+
+    template<typename T>
+    requires std::is_signed<T>::value
+    constexpr std::optional<T> safe_mult(T l, T r){
+        if(r > 0 && l > 0 && l > std::numeric_limits<T>::max() / r){
+            return std::nullopt;
+        }
+        
+        if(r < 0 && l < 0 && l < std::numeric_limits<T>::max() / r){
+            return std::nullopt;
+        }
+
+        if(r > 0 && l < 0 && l < std::numeric_limits<T>::min() / r){
+            return std::nullopt;
+        }
+
+        if(r < 0 && l > 0 && l > std::numeric_limits<T>::min() / r){
+            return std::nullopt;
+        }
+
+        return l * r;
     }
 
 

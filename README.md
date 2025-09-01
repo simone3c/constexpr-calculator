@@ -72,6 +72,7 @@ int main(){
 
 # TODO
 - handle overlow and underflow
+- automatically deduce the evaluation type
 - math functions
 - exponent
 - definite intgrals

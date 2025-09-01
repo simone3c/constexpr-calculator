@@ -31,6 +31,7 @@ namespace calc{
         UNEXPECTED_TOKEN,
         INVALID_EXPR,
         DIVISION_BY_ZERO,
+        OVERFLOW_UNDERFLOW,
         UNEXPECTED_VALUE,
     };
 
