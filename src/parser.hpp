@@ -14,9 +14,9 @@
 #include "nodes.hpp"
 
 /*
-    EXPR: MUL (('+' MUL_DIV)? | ('-' MUL_DIV)?)
-    MUL_DIV: SIGN (('*' SIGN)? | ('/' SIGN)?)
-    '^' ...
+    EXPR: MUL_DIV (('+' MUL_DIV)? | ('-' MUL_DIV)?)
+    MUL_DIV: EXPONENT (('*' EXPONENT)? | ('/' EXPONENT)?)
+    EXPONENT: SIGN ('^' SIGN)?
     SIGN: '-'? FACTORIAL
     FACTORIAL: ATOM '!'?
     ATOM: LIT | '(' EXPR ')' // SIN, LOG, ...
@@ -129,7 +129,7 @@ namespace {
 
         constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_mul_div(){
 
-            auto next_expr = parse_sign();
+            auto next_expr = parse_exponent();
             if(!next_expr){
                 return next_expr;
             }
@@ -139,7 +139,7 @@ namespace {
             ){
                 auto next = t.next();
 
-                auto next_expr_2 = parse_sign();
+                auto next_expr_2 = parse_exponent();
                 if(!next_expr_2){
                     return next_expr_2;
                 }
@@ -161,13 +161,34 @@ namespace {
             return next_expr;
         }
 
+        constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_exponent(){
+            auto next_expr = parse_sign();
+            if(!next_expr){
+                return next_expr;
+            }
+            
+            if(t.match(tokenizer::TOKEN_TYPE::EXPONENT)){
+                t.next();
+
+                auto next_expr_2 = parse_sign();
+                if(!next_expr_2){
+                    return next_expr_2;
+                }
+
+                return binary_op<num_t>::exponent(std::move(*next_expr), std::move(*next_expr_2));
+               
+            }
+
+            return next_expr;
+        }
+
         constexpr std::expected<expr_ptr_t<num_t>, calc_err> parse_sign(){
 
             bool is_pos = true;
 
             if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
-                is_pos = false;
                 t.next();
+                is_pos = false;
             }
             
             auto next_expr = parse_factorial();

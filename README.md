@@ -71,10 +71,8 @@ int main(){
 ```
 
 # TODO
-- handle overlow and underflow
 - automatically deduce the evaluation type
 - math functions
-- exponent
 - definite intgrals
 - summation and product notation
 - change grammar to force writing "x-(-4)" insted of "x--4"

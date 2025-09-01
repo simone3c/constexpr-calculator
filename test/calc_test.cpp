@@ -93,6 +93,22 @@ TEST(calc_test, factorial){
     static_assert(calc::evaluate<int>("(6 + 2) * (3! / 2!)") == 24);
 }
 
+TEST(calc_test, exponent){
+    static_assert(calc::evaluate<int>("(3 + 1)! - 2 ^ 3") == 16);
+    static_assert(calc::evaluate<int>("(2 + 2)! + (3 ^ 2)") == 33);
+    static_assert(calc::evaluate<int>("(5 - 2)! ^ 2") == 36);
+    static_assert(calc::evaluate<int>("(2 + 1)! + (2 ^ (2 + 1))") == 14);
+    static_assert(calc::evaluate<int>("(4 + 1)! - (3 + 3)") == 114);
+    static_assert(calc::evaluate<int>("(6 - 3)! ^ (1 + 1)") == 36);
+    static_assert(calc::evaluate<int>("(2 + 3 ^ 1)! - (2 + 2)!") == 96);
+    static_assert(calc::evaluate<int>("(3 + 1) ^ 2 + 3!") == 22);
+    static_assert(calc::evaluate<int>("-((2 + 1)! + 1) ^ 2") == 49);
+    static_assert(calc::evaluate<int>("(2 + 3)! - ((1 + 1) ^ 3)") == 112);
+    static_assert(calc::evaluate<int>("(5 + 1)! ^ 0 + 3") == 4);
+
+
+}
+
 TEST(calc_test, syntax_errors){
     using enum calc::calc_err_type_t;
 

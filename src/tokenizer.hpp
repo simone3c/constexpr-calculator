@@ -26,7 +26,7 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<asterisk>\\*)|(?<slash>\\/)|(?<factorial>!)|(?<space>\\s+)|.+"
+#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<exponent>\\^)|(?<asterisk>\\*)|(?<slash>\\/)|(?<factorial>!)|(?<space>\\s+)|.+"
 
 namespace calc{
 namespace{
@@ -43,6 +43,7 @@ namespace{
             ASTERISK,
             SLASH,
             FACTORIAL,
+            EXPONENT,
         };
 
         struct token{
@@ -107,6 +108,9 @@ namespace{
                 else if(r.get<"factorial">()){
                     t.type = TOKEN_TYPE::FACTORIAL;
                 }
+                else if(r.get<"exponent">()){
+                    t.type = TOKEN_TYPE::EXPONENT;
+                }
                 else if(r.get<"space">()){
                     continue;
                 }
@@ -144,6 +148,7 @@ namespace{
         [[maybe_unused]] constexpr std::optional<token> next(){
             auto ret = peek();
             if(ret){
+                //std::println("{}", ret->val);
                 tokens.erase(tokens.begin());
                 // tokens.pop_front() since c++26 when std::list will be constexpr
             }

@@ -128,6 +128,35 @@ namespace{
             );   
         }
 
+        static constexpr expr_ptr_t<num_t> exponent(
+            expr_ptr_t<num_t>&& l, 
+            expr_ptr_t<num_t>&& r
+        ){
+            return binary_op_with_fun(std::move(l), std::move(r), 
+                [](num_t b, num_t e) constexpr -> evaluation_t<num_t> {
+                    // auto ret = std::pow(b, e); constexpr since c++26
+                    assert(!std::is_floating_point<num_t>::value && e >= 0 && "exponent not implemented for floating point!");
+
+                    num_t ret = 1;
+                    while(e){
+                        auto tmp = math_utils::safe_mult(ret, b);
+                        if(!tmp){
+                            return std::unexpected(
+                                calc_err::error_message(
+                                calc_err_type_t::OVERFLOW_UNDERFLOW, 
+                                "overflow/underflow detected"
+                                )
+                            );
+                        }
+                        ret = *tmp;
+                        --e;
+                    }
+
+                    return ret;
+                }
+            );   
+        }
+
     private:
         static constexpr expr_ptr_t<num_t> binary_op_with_fun(
             expr_ptr_t<num_t>&& l, 
