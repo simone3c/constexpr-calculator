@@ -4,9 +4,9 @@
 #include <concepts>
 #include <limits>
 
-// useful when complex numbers will be a thing
-
 namespace calc{
+    using num_t = double;
+
 namespace math_utils{
     static constexpr double epsilon = 1.e-12;
 
@@ -24,79 +24,47 @@ namespace math_utils{
     
     template<typename T>
     requires std::is_signed<T>::value
-    constexpr T  zero_element(){
+    constexpr T zero_element(){
         return static_cast<T>(0);
     };
-    
-    template<std::integral T>
-    constexpr bool equal(T v1, T v2){
-        return v1 == v2;
-    }
 
-    template<std::floating_point T>
-    constexpr bool equal(T v1, T v2){
+    constexpr bool equal(num_t v1, num_t v2){
         return std::fabs(v1 - v2) < epsilon;
     }
 
-    template<typename T>
-    requires std::is_signed<T>::value
-    constexpr bool is_zero(T v1){
-        return equal(v1, zero_element<T>());
+    constexpr bool is_zero(num_t v1){
+        return equal(v1, zero_element<num_t>());
     }
 
-    template<typename T>
-    requires std::is_signed<T>::value
-    constexpr std::optional<T> safe_add(T l, T r){
-        if(r > 0 && l > std::numeric_limits<T>::max() - r){
-            return std::nullopt;
-        }
-
-        if(r < 0 && l < std::numeric_limits<T>::min() - r){
-            return std::nullopt;
-        }
-
-        return l + r;
+    constexpr num_t remove_decimal_part(num_t v){
+        return std::round(v);
     }
 
-    template<typename T>
-    requires std::is_signed<T>::value
-    constexpr std::optional<T> safe_sub(T l, T r){
-
-        return safe_add(l, static_cast<T>(-r));
-        
-        if(r > 0 && l < std::numeric_limits<T>::min() + r){
-            return std::nullopt;
-        }
-
-        if(r < 0 && l > std::numeric_limits<T>::max() + r){
-            return std::nullopt;
-        }
-
-        return l - r;
+    constexpr bool is_integer(num_t v1){
+        return equal(v1, remove_decimal_part(v1));
     }
 
-    template<typename T>
-    requires std::is_signed<T>::value
-    constexpr std::optional<T> safe_mult(T l, T r){
-        if(r > 0 && l > 0 && l > std::numeric_limits<T>::max() / r){
-            return std::nullopt;
-        }
-        
-        if(r < 0 && l < 0 && l < std::numeric_limits<T>::max() / r){
+    constexpr std::optional<num_t> safe_add(num_t l, num_t r){
+        const auto ret = l + r;
+        if(!std::isfinite(ret)){
             return std::nullopt;
         }
 
-        if(r > 0 && l < 0 && l < std::numeric_limits<T>::min() / r){
-            return std::nullopt;
-        }
-
-        if(r < 0 && l > 0 && l > std::numeric_limits<T>::min() / r){
-            return std::nullopt;
-        }
-
-        return l * r;
+        return ret;
     }
 
+    constexpr std::optional<num_t> safe_sub(num_t l, num_t r){
+        return safe_add(l, static_cast<num_t>(-r));
+    }
+
+    constexpr std::optional<num_t> safe_mult(num_t l, num_t r){
+        const auto ret = l * r;
+        if(!std::isfinite(ret)){
+            return std::nullopt;
+        }
+
+        return ret;
+    }
 
 }
 }
