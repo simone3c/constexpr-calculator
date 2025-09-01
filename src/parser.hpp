@@ -39,12 +39,6 @@ namespace {
             using enum calc_err_type_t;
 
             auto err = parse(str);
-            auto t1 = std::chrono::high_resolution_clock::now();
-            for(int i = 0; i < 1000; ++i)
-                err = parse(str);
-            auto t2 = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::nano> t = (t2 - t1) / 1000;
-            std::println("parse: {}", t);
 
             if(err){
                 return std::unexpected(*err);
@@ -52,16 +46,7 @@ namespace {
 
             assert(root != nullptr);
             
-            auto ret = root->evaluate();
-
-            t1 = std::chrono::high_resolution_clock::now();
-            for(int i = 0; i < 1000; ++i)
-                ret = root->evaluate();
-            t2 = std::chrono::high_resolution_clock::now();
-            t = (t2 - t1) / 1000;
-            std::println("evaluate: {}", t);
-
-            return ret;
+            return root->evaluate();
         }
 
     private:
