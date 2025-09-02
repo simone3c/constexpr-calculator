@@ -41,7 +41,7 @@ namespace calc{
         
         calc_err_type_t err_type;
         std::array<char, buf_sz + 1> err_msg;
-        std::optional<std::array<char, buf_sz + 1>> wrong_expr;
+        std::optional<std::array<char, buf_sz + 1>> expr;
         std::optional<size_t> start;
         std::optional<size_t> end;
 
@@ -57,11 +57,11 @@ namespace calc{
         static constexpr calc_err error_with_wrong_token(
             calc_err_type_t type, 
             std::string_view msg, 
-            std::string_view wrong, 
+            std::string_view expr, 
             size_t start, 
             size_t end
         ){
-            return calc_err(type, msg, wrong, start, end);
+            return calc_err(type, msg, expr, start, end);
         }
 
         constexpr calc_err_type_t get_err_type() const {
@@ -69,7 +69,7 @@ namespace calc{
         } 
 
         constexpr const auto& get_expr() const{
-            return wrong_expr;
+            return expr;
         }
         
         constexpr const auto& get_err_msg() const{
@@ -88,21 +88,21 @@ namespace calc{
         constexpr calc_err(
             calc_err_type_t type, 
             std::string_view msg, 
-            std::optional<std::string_view> wrong, 
+            std::optional<std::string_view> expr_par, 
             std::optional<size_t> s, 
             std::optional<size_t> e
         ):
             err_type(type), 
-            wrong_expr(std::nullopt),
+            expr(std::nullopt),
             start(s), 
             end(e)
         {
             err_msg.fill(0);
             my_strncpy(err_msg.data(), msg.data(), err_msg.max_size());
 
-            if(wrong){
-                wrong_expr.emplace().fill(0);
-                my_strncpy(wrong_expr->data(), wrong->data(), wrong_expr->max_size());
+            if(expr_par){
+                expr.emplace().fill(0);
+                my_strncpy(expr->data(), expr_par->data(), expr_par->max_size());
             }
         }
     };

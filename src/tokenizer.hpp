@@ -48,7 +48,9 @@ namespace{
 
         struct token{
             TOKEN_TYPE type;
-            std::string val;
+            // complete expression and ptrs to its portion which contains
+            // the actual token string
+            std::string full_expr;
             size_t start;
             size_t end;
         };
@@ -76,7 +78,7 @@ namespace{
 
             auto res = ctre::tokenize<regex>(str);
             for(const auto& r : res){
-                token t;
+                TOKEN_TYPE t;
 
                 start = end;
                 end += r.str().size();
@@ -85,31 +87,31 @@ namespace{
 
 
                 if(r.get<"lit">()){
-                    t.type = TOKEN_TYPE::LIT;
+                    t = TOKEN_TYPE::LIT;
                 }
                 else if(r.get<"open_par">()){
-                    t.type = TOKEN_TYPE::OPEN_PAR;
+                    t = TOKEN_TYPE::OPEN_PAR;
                 }
                 else if(r.get<"closed_par">()){
-                    t.type = TOKEN_TYPE::CLOSED_PAR;
+                    t = TOKEN_TYPE::CLOSED_PAR;
                 }
                 else if(r.get<"plus">()){
-                    t.type = TOKEN_TYPE::PLUS;
+                    t = TOKEN_TYPE::PLUS;
                 }
                 else if(r.get<"minus">()){
-                    t.type = TOKEN_TYPE::MINUS;
+                    t = TOKEN_TYPE::MINUS;
                 }
                 else if(r.get<"asterisk">()){
-                    t.type = TOKEN_TYPE::ASTERISK;
+                    t = TOKEN_TYPE::ASTERISK;
                 }
                 else if(r.get<"slash">()){
-                    t.type = TOKEN_TYPE::SLASH;
+                    t = TOKEN_TYPE::SLASH;
                 }
                 else if(r.get<"factorial">()){
-                    t.type = TOKEN_TYPE::FACTORIAL;
+                    t = TOKEN_TYPE::FACTORIAL;
                 }
                 else if(r.get<"exponent">()){
-                    t.type = TOKEN_TYPE::EXPONENT;
+                    t = TOKEN_TYPE::EXPONENT;
                 }
                 else if(r.get<"space">()){
                     continue;
@@ -128,11 +130,7 @@ namespace{
 
                     return err;
                 }
-                t.val = r.str();
-                t.start = start;
-                t.end = end;
-                tokens.push_back(t);
-
+                tokens.emplace_back(t, str, start, end);
             }
 
             return std::nullopt;

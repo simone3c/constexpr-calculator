@@ -54,7 +54,6 @@ namespace {
             using enum calc_err_type_t;
 
             root.reset();
-            expr.clear();
 
             expr = std::string{input};
             auto new_end = std::unique(std::begin(expr), std::end(expr), 
@@ -71,7 +70,6 @@ namespace {
             }
 
             auto tmp = parse_exp();
-
             if(!tmp){
                 return tmp.error();
             }
@@ -81,7 +79,7 @@ namespace {
                 return calc_err::error_with_wrong_token(
                     UNEXPECTED_TOKEN, 
                     "Unexpected token after end-of-expression",
-                    expr,
+                    tok->full_expr,
                     tok->start,
                     tok->end
                 );
@@ -111,12 +109,14 @@ namespace {
 
                 if(next->type == tokenizer::TOKEN_TYPE::PLUS){
                     next_expr = binary_op::add(
+                        std::move(*next),
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     );    
                 }
                 else{
                     next_expr = binary_op::sub(
+                        std::move(*next),
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     );  
@@ -145,12 +145,14 @@ namespace {
 
                 if(next->type == tokenizer::TOKEN_TYPE::ASTERISK){
                     next_expr = binary_op::mult(
+                        std::move(*next),
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     ); 
                 }
                 else{
                     next_expr = binary_op::div(
+                        std::move(*next),
                         std::move(*next_expr), 
                         std::move(*next_expr_2)
                     ); 
@@ -167,14 +169,18 @@ namespace {
             }
             
             if(t.match(tokenizer::TOKEN_TYPE::EXPONENT)){
-                t.next();
+                auto next = t.next();
 
                 auto next_expr_2 = parse_sign();
                 if(!next_expr_2){
                     return next_expr_2;
                 }
 
-                return binary_op::exponent(std::move(*next_expr), std::move(*next_expr_2));
+                return binary_op::exponent(
+                    std::move(*next),
+                    std::move(*next_expr), 
+                    std::move(*next_expr_2)
+                );
                
             }
 
@@ -184,9 +190,10 @@ namespace {
         constexpr std::expected<expr_ptr_t, calc_err> parse_sign(){
 
             bool is_pos = true;
+            std::optional<token> next;
 
             if(t.match(tokenizer::TOKEN_TYPE::MINUS)){
-                t.next();
+                next = t.next();
                 is_pos = false;
             }
             
@@ -195,7 +202,10 @@ namespace {
                 return next_expr;
             }
             
-            return unary_op::neg(std::move(*next_expr));
+            return unary_op::neg(
+                std::move(*next),
+                std::move(*next_expr)
+            );
         }
         
         constexpr std::expected<expr_ptr_t, calc_err> parse_factorial(){
@@ -206,8 +216,10 @@ namespace {
             }
 
             if(t.match(tokenizer::TOKEN_TYPE::FACTORIAL)){
-                t.next();
-                return unary_op::factorial(std::move(*next_expr));
+                return unary_op::factorial(
+                    std::move(*t.next()),
+                    std::move(*next_expr)
+                );
             }
             
             return next_expr;
@@ -226,7 +238,7 @@ namespace {
                     calc_err::error_with_wrong_token(
                         EXPECTED_TOKEN, 
                         "Expected token, found end-of-expression instead", 
-                        expr, 
+                        expr,
                         expr.size() - 1, 
                         expr.size()
                     )
@@ -245,7 +257,7 @@ namespace {
                         calc_err::error_with_wrong_token(
                             EXPECTED_TOKEN, 
                             "Expected a closed bracket ')'", 
-                            expr, 
+                            tok->full_expr, 
                             tok->start, 
                             tok->end
                         )
@@ -254,20 +266,20 @@ namespace {
                 break;
 
             case tokenizer::TOKEN_TYPE::LIT:
-                lit_val = lit_convert(tok->val);
+                lit_val = lit_convert(tok->full_expr.substr(tok->start, tok->end - tok->start));
                 if(!lit_val){
                     return std::unexpected(
                         calc_err::error_with_wrong_token(
                             INVALID_LITERAL, 
                             "Invalid literal", 
-                            expr, 
+                            tok->full_expr, 
                             tok->start, 
                             tok->end
                         )
                     );
                 }
 
-                tmp = std::make_unique<lit<num_t>>(*lit_val); 
+                tmp = lit::literal(std::move(*tok), *lit_val);
                 
                 break;
 
@@ -278,7 +290,7 @@ namespace {
                     calc_err::error_with_wrong_token(
                         INVALID_EXPR, 
                         "Invalid expression, expected a literal or function", 
-                        expr, 
+                        tok->full_expr, 
                         tok->start, 
                         tok->end
                     )
