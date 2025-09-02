@@ -71,8 +71,9 @@ int main(){
 ```
 
 # TODO
-- automatically deduce the evaluation type
 - math functions
 - definite intgrals
 - summation and product notation
 - change grammar to force writing "x-(-4)" insted of "x--4"
+- complex numbers
+- automatically deduce the evaluation type 

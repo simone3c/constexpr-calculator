@@ -97,7 +97,6 @@ TEST(calc_test, exponent){
     static_assert(calc::evaluate("(2 + 3)! - ((1 + 1) ^ 3)") == 112);
     static_assert(calc::evaluate("(5 + 1)! ^ 0 + 3") == 4);
 
-
 }
 
 TEST(calc_test, syntax_errors){
