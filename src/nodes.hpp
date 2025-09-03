@@ -174,6 +174,10 @@ namespace{
                         );
                     }
 
+                    if(math_utils::is_zero(b) || math_utils::equal(b, 1)){
+                        return 1;
+                    }
+
                     e = math_utils::remove_decimal_part(e);
                     
                     num_t ret = 1;
@@ -198,8 +202,6 @@ namespace{
                 }
             );   
         }
-
-        
 
     private:
         static constexpr expr_ptr_t binary_op_with_fun(
