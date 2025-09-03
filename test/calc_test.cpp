@@ -141,7 +141,10 @@ TEST(calc_test, evaluation_errors){
 
     EXPECT_EQ(calc::evaluate("10000000!").error().get_err_type(), OVERFLOW_UNDERFLOW);
     EXPECT_EQ(calc::evaluate("10000^100000000").error().get_err_type(), OVERFLOW_UNDERFLOW);
+    EXPECT_EQ(calc::evaluate("10000^1000 + 100000000000000000").error().get_err_type(), OVERFLOW_UNDERFLOW);
+    EXPECT_EQ(calc::evaluate("-10000^1000 - 100000000000000000").error().get_err_type(), OVERFLOW_UNDERFLOW);
     EXPECT_EQ(calc::evaluate("10000^1000 * 100000000000000000").error().get_err_type(), OVERFLOW_UNDERFLOW);
+    EXPECT_EQ(calc::evaluate("10000^1000 / 0.00000000000000001").error().get_err_type(), OVERFLOW_UNDERFLOW);
 
     static_assert(calc::evaluate("2^-5").error().get_err_type() == UNEXPECTED_VALUE);
 

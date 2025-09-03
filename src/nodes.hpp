@@ -117,7 +117,6 @@ namespace{
             );   
         }
 
-        // TODO handle floating point issues for divison
         static constexpr expr_ptr_t div(
             token&& t,
             expr_ptr_t&& l, 
@@ -137,7 +136,20 @@ namespace{
                         );
                     }
 
-                    return n / d;
+                    auto ret = math_utils::safe_div(n, d);
+                    if(ret){
+                        return *ret;
+                    }
+
+                    return std::unexpected(
+                        calc_err::error_with_wrong_token(
+                            calc_err_type_t::OVERFLOW_UNDERFLOW, 
+                            "overflow/underflow detected",
+                            tok.full_expr,
+                            tok.start,
+                            tok.end
+                        )
+                    );
                 }
             );   
         }

@@ -66,6 +66,15 @@ namespace math_utils{
         return ret;
     }
 
+    constexpr std::optional<num_t> safe_div(num_t l, num_t r){
+        const auto ret = l / r;
+        if(!std::isfinite(ret)){
+            return std::nullopt;
+        }
+
+        return ret;
+    }
+
 }
 }
 
