@@ -5,6 +5,14 @@ Constexpr-enabled interpreter of math expression developed in C++23
 - g++ 14.2 or newer
 - cmake 3.20 or newer
 
+# Capabilities
+This calculator accepts the most important mathematical operators/functions:
+- +, -, *, /
+- \( and \)
+- ^ power
+- ! factorial
+- abs, floor, ceil
+
 # Build
 Your CMakeLists.txt should contain the following lines:
 ```
@@ -14,21 +22,22 @@ Your CMakeLists.txt should contain the following lines:
     target_link_libraries(MyApp PRIVATE calc) # calc is the name of the library
 ```
 
+To build and run only the librarys' tests, do the following:
 ```bash
     # clone
     > git clone https://github.com/simone3c/constexpr-calculator.git --recurse-submodules
 
     # build
-    > cmake -B build -DBUILD_TESTS=OFF
+    > cmake -B build -DBUILD_TESTS=ON
     > cmake --build build
 
     # run
-    > build/main
+    > build/calc_test
 
 ```
 
 # Usage
-The evaluation can be performed at compile time
+The evaluation can be performed at compile time:
 ```c++
 // constexpr usage
 
@@ -41,7 +50,7 @@ int main(){
     static_assert(val.value() == 2.5);
 }
 ```
-but also at runtime if needed
+but also at runtime if needed:
 ```c++
 // NON-contexpr usage
 
@@ -55,7 +64,7 @@ int main(){
 }
 ```
 
-Errors can be easily printed
+Errors can be easily printed:
 ```c++
 #include <print>
 #include "calculator.hpp"
