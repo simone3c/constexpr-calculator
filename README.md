@@ -36,7 +36,7 @@ The evaluation can be performed at compile time
 
 int main(){
     constexpr auto expr = "1+1.5";
-    constexpr auto val = ev::evaluate(expr);
+    constexpr auto val = calc::evaluate(expr);
 
     static_assert(val.value() == 2.5);
 }
@@ -49,7 +49,7 @@ but also at runtime if needed
 
 int main(){
     auto expr = user_input();
-    auto val = ev::evaluate(expr);
+    auto val = calc::evaluate(expr);
 
     assert(val.value() == 2);
 }
@@ -62,7 +62,7 @@ Errors can be easily printed
 
 int main(){
     constexpr auto expr = "1+ error here"; 
-    constexpr auto val = ev::evaluate(expr);
+    constexpr auto val = calc::evaluate(expr);
 
     static_assert(!val.has_value());
 

@@ -19,7 +19,8 @@
     EXPONENT: SIGN ('^' SIGN)?
     SIGN: '-'? FACTORIAL
     FACTORIAL: ATOM '!'?
-    ATOM: LIT | '(' EXPR ')' // SIN, LOG, ...
+    ATOM: LIT | FUN? '(' EXPR ')'
+    FUN: abs // SIN, LOG, ...
     LIT: int | double
 */
 
@@ -246,6 +247,38 @@ namespace {
             }
             
             switch (tok->type){
+            case tokenizer::TOKEN_TYPE::ABS: [[fallthrough]];
+            case tokenizer::TOKEN_TYPE::CEIL: [[fallthrough]];
+            case tokenizer::TOKEN_TYPE::FLOOR:
+                if(!t.match(tokenizer::TOKEN_TYPE::OPEN_PAR)){
+                    return std::unexpected(
+                        calc_err::error_with_wrong_token(
+                            EXPECTED_TOKEN, 
+                            "Expected an open bracket '(' after function call", 
+                            tok->full_expr, 
+                            tok->start, 
+                            tok->end
+                        )
+                    );
+                }
+
+                tmp = parse_atom();
+                if(!tmp){
+                    return tmp;
+                }
+
+                if(tok->type == tokenizer::TOKEN_TYPE::ABS){
+                    tmp = unary_op::abs(std::move(*tok), std::move(*tmp));
+                }
+                else if(tok->type == tokenizer::TOKEN_TYPE::FLOOR){
+                    tmp = unary_op::floor(std::move(*tok), std::move(*tmp));
+                }
+                else if(tok->type == tokenizer::TOKEN_TYPE::CEIL){
+                    tmp = unary_op::ceil(std::move(*tok), std::move(*tmp));
+                }
+
+                break;
+
             case tokenizer::TOKEN_TYPE::OPEN_PAR:
                 tmp = parse_exp();
                 if(!tmp){

@@ -187,6 +187,8 @@ namespace{
             );   
         }
 
+        
+
     private:
         static constexpr expr_ptr_t binary_op_with_fun(
             token&& t,
@@ -285,6 +287,39 @@ namespace{
                     }
 
                     return ret;
+                }
+            );
+        }
+
+        static constexpr expr_ptr_t abs(token&& t, expr_ptr_t&& data){
+            using enum calc_err_type_t;
+            return unary_op_with_fun(
+                std::move(t),
+                std::move(data), 
+                [](num_t n, [[maybe_unused]] const token& tok) constexpr -> evaluation_t {
+                    return std::fabs(n);
+                }
+            );
+        }
+
+        static constexpr expr_ptr_t floor(token&& t, expr_ptr_t&& data){
+            using enum calc_err_type_t;
+            return unary_op_with_fun(
+                std::move(t),
+                std::move(data), 
+                [](num_t n, [[maybe_unused]] const token& tok) constexpr -> evaluation_t {
+                    return std::floor(n);
+                }
+            );
+        }
+
+        static constexpr expr_ptr_t ceil(token&& t, expr_ptr_t&& data){
+            using enum calc_err_type_t;
+            return unary_op_with_fun(
+                std::move(t),
+                std::move(data), 
+                [](num_t n, [[maybe_unused]] const token& tok) constexpr -> evaluation_t {
+                    return std::ceil(n);
                 }
             );
         }

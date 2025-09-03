@@ -99,16 +99,36 @@ TEST(calc_test, exponent){
 
 }
 
+TEST(calc_test, unary_functions){
+    static_assert(calc::evaluate("abs(0)") == 0);
+    static_assert(calc::evaluate("abs(1.5)") == 1.5);
+    static_assert(calc::evaluate("abs(-1.5)") == 1.5);
+    static_assert(calc::evaluate("abs(-1.5 * 1.5)") == 2.25);
+    static_assert(calc::evaluate("floor(0)") == 0);
+    static_assert(calc::evaluate("floor(1.5)") == 1);
+    static_assert(calc::evaluate("floor(-1.5)") == -2);
+    static_assert(calc::evaluate("floor(-1.5 * 1.5)") == -3);
+    static_assert(calc::evaluate("ceil(0)") == 0);
+    static_assert(calc::evaluate("ceil(1.5)") == 2);
+    static_assert(calc::evaluate("ceil(-1.5)") == -1);
+    static_assert(calc::evaluate("ceil(-1.5 * 1.5)") == -2);
+
+}
+
 TEST(calc_test, syntax_errors){
     using enum calc::calc_err_type_t;
 
     static_assert(calc::evaluate("").error().get_err_type() == EMPTY_EXPRESSION);
+    static_assert(calc::evaluate("()").error().get_err_type() == INVALID_EXPR);
 
     static_assert(calc::evaluate("1 + 1p").error().get_err_type() == UNKNOWN_TOKEN);
 
     static_assert(calc::evaluate("(3+4").error().get_err_type() == EXPECTED_TOKEN);
     static_assert(calc::evaluate("1+").error().get_err_type() == EXPECTED_TOKEN);
     static_assert(calc::evaluate("1 1+1").error().get_err_type() == UNEXPECTED_TOKEN);
+
+    static_assert(calc::evaluate("abs 1").error().get_err_type() == EXPECTED_TOKEN);
+    static_assert(calc::evaluate("abs()").error().get_err_type() == INVALID_EXPR);
 }
 
 TEST(calc_test, evaluation_errors){

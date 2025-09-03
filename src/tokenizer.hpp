@@ -26,7 +26,19 @@ using std::print;
 #define WHT   "\x1B[37m"
 #define RESET "\x1B[0m"
 
-#define regex "(?<lit>([0-9]*[.])?[0-9]+)|(?<open_par>\\()|(?<closed_par>\\))|(?<plus>\\+)|(?<minus>-)|(?<exponent>\\^)|(?<asterisk>\\*)|(?<slash>\\/)|(?<factorial>!)|(?<space>\\s+)|.+"
+#define regex "(?<lit>([0-9]*[.])?[0-9]+)|"\
+              "(?<open_par>\\()|"\
+              "(?<closed_par>\\))|"\
+              "(?<plus>\\+)|"\
+              "(?<minus>-)|"\
+              "(?<exponent>\\^)|"\
+              "(?<asterisk>\\*)|"\
+              "(?<slash>\\/)|"\
+              "(?<factorial>!)|"\
+              "(?<abs>abs)|"\
+              "(?<floor>floor)|"\
+              "(?<ceil>ceil)|"\
+              "(?<space>\\s+)|.+"
 
 namespace calc{
 namespace{
@@ -44,6 +56,10 @@ namespace{
             SLASH,
             FACTORIAL,
             EXPONENT,
+            ABS,
+            FLOOR,
+            CEIL,
+
         };
 
         struct token{
@@ -112,6 +128,15 @@ namespace{
                 }
                 else if(r.get<"exponent">()){
                     t = TOKEN_TYPE::EXPONENT;
+                }
+                else if(r.get<"abs">()){
+                    t = TOKEN_TYPE::ABS;
+                }
+                else if(r.get<"floor">()){
+                    t = TOKEN_TYPE::FLOOR;
+                }
+                else if(r.get<"ceil">()){
+                    t = TOKEN_TYPE::CEIL;
                 }
                 else if(r.get<"space">()){
                     continue;
